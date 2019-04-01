@@ -138,8 +138,8 @@ echo "Docker Apigee Istio Openshift Installation Successful"
 
 echo "Installing Services"
 mkdir /home/services && cd /home/services
-git clone https://github.com/sidd-harth/15022019-istio
-cd 15022019-istio/kubernetes/kube-injected/
+git clone https://github.com/sidd-harth/aio
+cd aio/kubernetes/kube-injected/
 
 echo "Creating Project and enabling istio-injection"
 oc new-project aio  
@@ -288,8 +288,6 @@ oc get destinationrules
  oc delete virtualservice payment-mirror
 
 
-
- while true; do curl -s http://customer.katacoda.com | grep --color -E 'recommendation v2|$' ; sleep .5; done
 while true; do curl -s http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
 while true; do curl -s http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-service-VERSION-2|$' ; sleep .5; done
 
