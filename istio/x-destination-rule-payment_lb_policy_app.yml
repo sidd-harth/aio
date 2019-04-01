@@ -1,0 +1,10 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: payment
+  namespace: aio
+spec:
+  host: payment
+  trafficPolicy:
+    loadBalancer:
+      simple: RANDOM

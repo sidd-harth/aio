@@ -1,0 +1,306 @@
+#!/bin/bash
+sudo echo "Instllaing Docker"
+sudo yum install -y yum-utils  device-mapper-persistent-data  lvm2
+sudo yum-config-manager --add-repo  https://download.docker.com/linux/centos/docker-ce.repo
+sudo yum install -y docker-ce docker-ce-cli containerd.io 
+sudo systemctl start docker
+sudo docker run hello-world
+
+sudo echo "Adding Insecure registry entry"
+sudo   echo "{
+     "insecure-registries": [
+       "172.30.0.0/16"
+     ]
+  }" > /etc/docker/daemon.json
+
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+
+sudo echo "Checking subset: 172.17.0.0/16"
+sudo docker network inspect -f "{{range .IPAM.Config }}{{ .Subnet }}{{end}}" bridge
+
+sudo firewall-cmd --permanent --new-zone dockerc
+sudo firewall-cmd --permanent --zone dockerc --add-source 172.17.0.0/16
+sudo firewall-cmd --permanent --zone dockerc --add-port 8443/tcp
+sudo firewall-cmd --permanent --zone dockerc --add-port 53/udp
+sudo firewall-cmd --permanent --zone dockerc --add-port 8053/udp
+sudo firewall-cmd --reload
+
+
+
+sudo passwd
+add a password
+su
+enter paddword
+
+echo "Setting up Openshift 3.9"
+yum install -y wget 
+yum install -y git
+mkdir /home/oc && cd /home/oc 
+wget https://github.com/openshift/origin/releases/download/v3.9.0/openshift-origin-client-tools-v3.9.0-191fece-linux-64bit.tar.gz
+tar -xvzf /home/oc/openshift-origin-client-tools-v3.9.0-191fece-linux-64bit.tar.gz
+export PATH=/home/oc/openshift-origin-client-tools-v3.9.0-191fece-linux-64bit:$PATH
+oc version
+
+echo "GET GCP External IP Address" 
+gcp_external_IP=$(curl -H "Metadata-Flavor: Google" http://169.254.169.254/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip)
+
+mkdir /home/installation && mkdir /home/installation/etcd && cd /home/installation
+
+oc cluster up --public-hostname=${gcp_external_IP} --metrics --logging=true --host-data-dir=/home/installation/etcd
+oc login -u system:admin
+
+//creating an admin role to login into webconsole
+oc create clusterrolebinding registry-controller --clusterrole=cluster-admin --user=admin
+
+oc adm policy add-scc-to-user anyuid -z istio-ingress-service-account -n istio-system &&
+oc adm policy add-scc-to-user anyuid -z default -n istio-system &&
+oc adm policy add-scc-to-user anyuid -z prometheus -n istio-system &&
+oc adm policy add-scc-to-user anyuid -z istio-egressgateway-service-account -n istio-system &&
+oc adm policy add-scc-to-user anyuid -z istio-citadel-service-account -n istio-system &&
+oc adm policy add-scc-to-user anyuid -z istio-ingressgateway-service-account -n istio-system &&
+oc adm policy add-scc-to-user anyuid -z istio-cleanup-old-ca-service-account -n istio-system &&
+oc adm policy add-scc-to-user anyuid -z istio-mixer-post-install-account -n istio-system &&
+oc adm policy add-scc-to-user anyuid -z istio-mixer-service-account -n istio-system &&
+oc adm policy add-scc-to-user anyuid -z istio-pilot-service-account -n istio-system &&
+oc adm policy add-scc-to-user anyuid -z istio-sidecar-injector-service-account -n istio-system &&
+oc adm policy add-cluster-role-to-user cluster-admin -z istio-galley-service-account -n istio-system &&
+oc adm policy add-scc-to-user anyuid -z cluster-local-gateway-service-account -n istio-system &&
+oc adm policy add-scc-to-user anyuid -z istio-galley-service-account -n istio-system
+
+
+echo "Installing Istio and setting up Apigee Account"
+oc login -u system:admin
+mkdir /home/apigee && cd /home/apigee 
+wget https://github.com/apigee/istio-mixer-adapter/releases/download/1.0.5/istio-mixer-adapter_1.0.5_linux_64-bit.tar.gz
+tar -xvzf istio-mixer-adapter_1.0.5_linux_64-bit.tar.gz 
+export PATH=$PATH:$(pwd)
+apigee-istio version
+apigee-istio provision -f -o mamillarevathi-eval -e test -u mamilla.revathi@tavant.com -p Qwerty@67 > samples/apigee/handler.yaml 
+
+cd /home/apigee 
+wget https://github.com/sidd-harth/apigee-istio-adapter/archive/modified_1.0.tar.gz
+tar -xvzf /home/apigee/modified_1.0.tar.gz
+cd apigee-istio-adapter-modified_1.0
+oc apply -f samples/istio/crds.yaml
+oc apply -f samples/istio/istio-demo.yaml
+
+echo "180 seconds wait time for Lazyyy Istio-System Pods"
+sleep 180
+oc get pods -n istio-system
+
+echo "Exposing Istio Routes"
+oc expose svc istio-ingressgateway -n istio-system &&
+oc expose svc servicegraph -n istio-system &&
+oc expose svc grafana -n istio-system &&
+oc expose svc prometheus -n istio-system &&
+oc expose svc tracing -n istio-system 
+
+echo "Kiali Dashboard - Define URLS for Jaeger and Grafana"
+export JAEGER_URL="https://tracing-istio-system.${gcp_external_IP}.nip.io"; \
+export GRAFANA_URL="https://grafana-istio-system.${gcp_external_IP}.nip.io"; \
+export VERSION_LABEL="v0.9.0"
+
+echo "Install Kiali's configmap"
+curl https://raw.githubusercontent.com/kiali/kiali/${VERSION_LABEL}/deploy/openshift/kiali-configmap.yaml | \
+  VERSION_LABEL=${VERSION_LABEL} \
+  JAEGER_URL=${JAEGER_URL}  \
+  GRAFANA_URL=${GRAFANA_URL} envsubst | oc create -n istio-system -f -
+
+echo "Install Kiali's secrets"
+curl https://raw.githubusercontent.com/kiali/kiali/${VERSION_LABEL}/deploy/openshift/kiali-secrets.yaml | \
+  VERSION_LABEL=${VERSION_LABEL} envsubst | oc create -n istio-system -f -
+
+echo "Deploy Kiali to the cluster"
+curl https://raw.githubusercontent.com/kiali/kiali/${VERSION_LABEL}/deploy/openshift/kiali.yaml | \
+  VERSION_LABEL=${VERSION_LABEL}  \
+  IMAGE_NAME=kiali/kiali \
+  IMAGE_VERSION=${VERSION_LABEL}  \
+  NAMESPACE=istio-system  \
+  VERBOSE_MODE=4  \
+  IMAGE_PULL_POLICY_TOKEN="imagePullPolicy: Always" envsubst | oc create -n istio-system -f -
+
+echo "Create a new Kiali Route for the port 443"
+(oc get route kiali -n istio-system -o json|sed 's/80/443/')|oc apply -n istio-system -f -
+
+sleep 5
+
+
+echo "Docker Apigee Istio Openshift Installation Successful"
+
+
+
+
+
+
+
+
+
+echo "Installing Services"
+mkdir /home/services && cd /home/services
+git clone https://github.com/sidd-harth/15022019-istio
+cd 15022019-istio/kubernetes/kube-injected/
+
+echo "Creating Project and enabling istio-injection"
+oc new-project aio  
+oc adm policy add-scc-to-user privileged -z default -n aio  
+oc label  namespace aio istio-injection=enabled 
+#oc get pods -w -n istio-system
+
+oc project aio
+
+echo "Deploying Movies Service"
+oc apply -f movies-v1-deployment-injected.yml -n aio
+oc create -f movies-service.yml -n aio 
+oc expose svc movies -n aio
+
+echo "Deploying Booking Service"
+oc apply -f booking-v1-deployment-injected.yml -n aio
+oc create -f booking-service.yml -n aio 
+oc expose svc booking -n aio
+
+echo "Deploying Payment Service"
+oc apply -f payment-v1-deployment-injected.yml -n aio
+oc create -f payment-service.yml -n aio 
+oc expose svc payment -n aio
+
+echo "Deploying UI Service"
+oc apply -f ui-v1-deployment-injected.yml -n aio
+oc create -f ui-service.yml -n aio
+oc expose svc ui -n aio
+
+
+
+
+
+
+
+
+
+echo "Simple Routing v1 v2 - round robin  all calls to one version Canary deployment: Split traffic between v1 and v2 - 90 10 - 75 25 - 50 50 - 0 100"
+ oc apply -f destination-rule-movies-v1-v2.yml
+ oc apply -f virtual-service-movies-v1_100.yml
+ oc apply -f ../kubernetes/kube-injected/movies-v2-deployment-injected.yml -n aio
+
+ oc replace -f virtual-service-movies-v1_and_v2_10_90.yml
+ oc replace -f virtual-service-movies-v1_and_v2_50_50.yml
+ oc replace -f virtual-service-movies-v2_100.yml
+
+ while true; do curl -s http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
+
+ oc scale deployment movies-v1 --replicas=0 -n aio
+
+echo "Advacned Routing"
+ oc apply -f ../kubernetes/kube-injected/payment-v2-deployment-injected.yml -n aio
+
+echo "Mirroring Traffic (Dark Launch)" 
+ oc apply -f destination-rule-payment-v1-v2.yml
+ oc apply -f virtual-service-payment-v1-mirror-v2.yml
+ oc logs -f $(oc get pods|grep payment-v2|awk '{ print $1 }') -c payment --tail=10
+oc logs -f $(oc get pods|grep payment-v1|awk '{ print $1 }') -c payment --tail=10
+
+ while true; do  curl -s http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
+
+echo "user-agent header (Canary Deployment)"
+ oc replace -f virtual-service-firefox-payment-v2.yml
+ while true; do  curl -s http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
+ while true; do  curl -s -A "Firefox" http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
+ oc delete destinationrule payment && oc delete virtualservice payment
+
+echo "Load Balancer (multiple replicas and random load balancing)"
+ oc scale deployment payment-v2 --replicas=3 -n aio
+ oc scale deployment payment-v1 --replicas=2 -n aio
+ oc apply -f x-destination-rule-payment_lb_policy_app.yml
+
+ while true; do  curl -s http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
+
+ oc scale deployment payment-v2 --replicas=1 -n aio
+ oc scale deployment payment-v1 --replicas=1 -n aio
+ while true; do  curl -s http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
+ oc delete destinationrule payment
+
+echo "Fault Injection HTTP Error 401"
+ oc apply -f fi-destination-rule-payment.yml
+ oc apply -f fi-virtual-service-payment-401.yml
+
+  while true; do  curl -s http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
+  while true; do  curl -s http://booking-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
+
+ oc delete -f fi-virtual-service-payment-401.yml
+ 
+echo "Circuit Breaker (only requires Destination Rules)"
+echo "Siege Installation"
+ wget -c https://dl.fedoraproject.org/pub/epel/7/x86_64/Packages/s/siege-4.0.2-2.el7.x86_64.rpm https://dl.fedoraproject.org/pub/epel/7/x86_64/Packages/l/libjoedog-0.1.2-1.el7.x86_64.rpm -P installation/
+ rpm -ivh installation/*.rpm
+ siege version
+
+echo "Delay and CiruitBreaker - Fail Fast with Max Connections & Max Pending Requests"
+  while true; do  curl -s http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
+ oc apply -f fi-virtual-service-payment-delay.yml
+  while true; do time curl -s http://movies.com | grep --color -E 'payment-v2|$' ; sleep .5; done
+siege -r 3 -c 10  -v movies-aio.${gcp_external_IP}.nip.io
+ oc replace -f fi-destination-rule-payment_cb_policy.yml
+
+
+siege -r 3 -c 10  -v movies-aio.${gcp_external_IP}.nip.io
+ oc delete destinationrule payment && oc delete virtualservice payment
+
+echo "Pool Ejection - Ultimate resilience with retries, circuit breaker, and pool ejection"
+ oc scale deployment payment-v2 --replicas=2 -n aio
+
+ oc apply -f cpr-destination-rule-payment-v1-v2.yml
+ oc apply -f cpr-virtual-service-payment-v1_and_v2_50_50.yml
+ while true; do  curl -s http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
+
+ oc exec -it $(oc get pods|grep payment-v2|awk '{ print $1 }'|head -1) -c payment /bin/bash
+ curl localhost:8080/misbehave
+ exit
+ while true; do  curl -s http://movies.com | grep --color -E 'payment-v2|$' ; sleep .5; done
+
+ oc replace -f cpr-destination-rule-payment_pool_ejection.yml
+ while true; do  curl -s http://movies.com; sleep .5; done
+ oc replace -f cpr-virtual-service-payment_retry.yml
+ while true; do  curl -s http://movies.com | grep --color -E 'payment-v2|$' ; sleep .5; done
+ oc delete destinationrule payment && oc delete virtualservice payment
+
+
+echo "Apigee Quota/APIKey"
+cd /home/apigee
+oc apply -f samples/apigee/definitions.yaml 
+oc apply -f samples/apigee/handler.yaml 
+oc apply -f /home/apigee/apigee-istio-adapter-modified_1.0/samples/apigee/rule.yaml
+
+oc delete -f /home/apigee/apigee-istio-adapter-modified_1.0/samples/apigee/rule.yaml
+
+
+
+oc delete virtualservice --all
+oc delete destinationrules --all
+
+oc get virtualservice 
+oc get destinationrules
+
+ oc get rules --all-namespaces
+
+ oc delete project <project-name>
+ oc get virtualservice -ojson
+
+ oc delete virtualservice payment-mirror
+
+
+
+ while true; do curl -s http://customer.katacoda.com | grep --color -E 'recommendation v2|$' ; sleep .5; done
+while true; do curl -s http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
+while true; do curl -s http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-service-VERSION-2|$' ; sleep .5; done
+
+
+prometheus cmd 
+istio_requests_total
+istio_requests_total{destination_service="movies.aio.svc.cluster.local"}
+istio_requests_total{destination_service="payment.aio.svc.cluster.local"}
+istio_requests_total{destination_service="payment.aio.svc.cluster.local", destination_version="v2"}
+
+Rate of requests over the past 25 minutes to all instances of the payment service:
+rate(istio_requests_total{destination_service=~"payment.*", response_code="200"}[25m])
+
+

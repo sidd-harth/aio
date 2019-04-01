@@ -1,0 +1,30 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: php-ui
+    version: v1
+  name: php-ui-v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: php-ui
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: php-ui
+        version: v1
+    spec:
+      containers:
+      - env:
+        image: siddharth67/istio-php-ui-08022019:v1
+        imagePullPolicy: IfNotPresent
+        name: php-ui
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+        securityContext:
+          privileged: false
