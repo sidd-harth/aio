@@ -97,9 +97,9 @@ oc expose svc prometheus -n istio-system &&
 oc expose svc tracing -n istio-system 
 
 echo "Kiali Dashboard - Define URLS for Jaeger and Grafana"
-export JAEGER_URL="https://tracing-istio-system.${gcp_external_IP}.nip.io"; \
-export GRAFANA_URL="https://grafana-istio-system.${gcp_external_IP}.nip.io"; \
-export VERSION_LABEL="v0.16.0"
+export JAEGER_URL="https://tracing-istio-system.${gcp_external_IP}.nip.io" \
+export GRAFANA_URL="https://grafana-istio-system.${gcp_external_IP}.nip.io" \
+export VERSION_LABEL="v0.16.0" \
 export AUTH_STRATEGY="anonymous"
 
 bash <(curl -L https://raw.githubusercontent.com/sidd-harth/aio/master/kiali-setup.sh)
