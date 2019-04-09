@@ -129,40 +129,41 @@ get_downloader() {
 
 # Check the login strategy. If using "openshift" there is no other checks to perform,
 # but if we are using "login" then we need to make sure there is a username and password set
-if [ "${AUTH_STRATEGY}" == "" ]; then
-  AUTH_STRATEGY=$(read -p 'Choose a login strategy of either "login", "openshift" or "anonymous". Use "anonymous" at your own risk. [openshift]: ' val && echo -n $val)
-  AUTH_STRATEGY=${AUTH_STRATEGY:-openshift}
-fi
+# if [ "${AUTH_STRATEGY}" == "" ]; then
+#  AUTH_STRATEGY=$(read -p 'Choose a login strategy of either "login", "openshift" or "anonymous". Use "anonymous" at your own risk. [openshift]: ' val && echo -n $val)
+# AUTH_STRATEGY=${AUTH_STRATEGY:-openshift}
+# fi
 
 # Verify the AUTH_STRATEGY is a proper known value
-if [ "${AUTH_STRATEGY}" != "login" ] && [ "${AUTH_STRATEGY}" != "openshift" ] && [ "${AUTH_STRATEGY}" != "anonymous" ]; then
-  echo "ERROR: unknown AUTH_STRATEGY must be either 'login', 'openshift' or 'anonymous'"
-  exit 1
-fi
+# if [ "${AUTH_STRATEGY}" != "login" ] && [ "${AUTH_STRATEGY}" != "openshift" ] && [ "${AUTH_STRATEGY}" != "anonymous" ]; then
+#  echo "ERROR: unknown AUTH_STRATEGY must be either 'login', 'openshift' or 'anonymous'"
+#  exit 1
+# fi
 
-if [ "${AUTH_STRATEGY}" == "login" ]; then
+#if [ "${AUTH_STRATEGY}" == "login" ]; then
   # The credentials can be specified either as already base64 encoded, or in plain text.
   # If the username or passphrase plain text variable is set but empty, the user will be asked for a value.
-  if [ "${KIALI_USERNAME_BASE64}" == "" ]; then
-    KIALI_USERNAME="${KIALI_USERNAME=}" # note: the "=" inside ${} is on purpose
-    if [ "$KIALI_USERNAME" == "" ]; then
-      KIALI_USERNAME=$(read -p 'What do you want to use for the Kiali Username: ' val && echo -n $val)
-    fi
-    KIALI_USERNAME_BASE64="$(echo -n ${KIALI_USERNAME} | base64)"
-  fi
-
-  if [ "${KIALI_PASSPHRASE_BASE64}" == "" ]; then
-    KIALI_PASSPHRASE="${KIALI_PASSPHRASE=}" # note: the "=" inside ${} is on purpose
-    if [ "$KIALI_PASSPHRASE" == "" ]; then
-      KIALI_PASSPHRASE=$(read -sp 'What do you want to use for the Kiali Passphrase: ' val && echo -n $val)
-      echo
-    fi
-    KIALI_PASSPHRASE_BASE64="$(echo -n ${KIALI_PASSPHRASE} | base64)"
-  fi
-fi
+#  if [ "${KIALI_USERNAME_BASE64}" == "" ]; then
+#    KIALI_USERNAME="${KIALI_USERNAME=}" # note: the "=" inside ${} is on purpose
+#    if [ "$KIALI_USERNAME" == "" ]; then
+#      KIALI_USERNAME=$(read -p 'What do you want to use for the Kiali Username: ' val && echo -n $val)
+#    fi
+#    KIALI_USERNAME_BASE64="$(echo -n ${KIALI_USERNAME} | base64)"
+#  fi
+#
+ # if [ "${KIALI_PASSPHRASE_BASE64}" == "" ]; then
+ ##   KIALI_PASSPHRASE="${KIALI_PASSPHRASE=}" # note: the "=" inside ${} is on purpose
+ #   if [ "$KIALI_PASSPHRASE" == "" ]; then
+ #     KIALI_PASSPHRASE=$(read -sp 'What do you want to use for the Kiali Passphrase: ' val && echo -n $val)
+ #     echo
+#    fi
+#    KIALI_PASSPHRASE_BASE64="$(echo -n ${KIALI_PASSPHRASE} | base64)"
+#  fi
+#fi
+##############################################################################
 
 export IMAGE_NAME="${IMAGE_NAME:-kiali/kiali}"
-export IMAGE_VERSION="v0.16.0"
+export IMAGE_VERSION="${IMAGE_VERSION:-lastrelease}"
 export VERSION_LABEL="${VERSION_LABEL:-$IMAGE_VERSION}"
 export IMAGE_PULL_POLICY_TOKEN="${IMAGE_PULL_POLICY_TOKEN:-imagePullPolicy: Always}"
 export NAMESPACE="${NAMESPACE:-istio-system}"
@@ -173,7 +174,7 @@ export GRAFANA_URL="${GRAFANA_URL:-http://grafana-istio-system.127.0.0.1.nip.io}
 export VERBOSE_MODE="${VERBOSE_MODE:-3}"
 export KIALI_USERNAME_BASE64
 export KIALI_PASSPHRASE_BASE64
-export AUTH_STRATEGY
+export AUTH_STRATEGY="anonymous"
 
 # Make sure we have access to all required tools
 
