@@ -99,8 +99,11 @@ oc expose svc tracing -n istio-system
 echo "Kiali Dashboard - Define URLS for Jaeger and Grafana"
 export JAEGER_URL="https://tracing-istio-system.${gcp_external_IP}.nip.io"; \
 export GRAFANA_URL="https://grafana-istio-system.${gcp_external_IP}.nip.io"; \
-export VERSION_LABEL="v0.9.0"
+export VERSION_LABEL="v0.16.0"
 
+bash <(curl -L https://raw.githubusercontent.com/sidd-harth/aio/master/kiali-setup.sh)
+
+/*
 echo "Install Kiali's configmap"
 curl https://raw.githubusercontent.com/kiali/kiali/${VERSION_LABEL}/deploy/openshift/kiali-configmap.yaml | \
   VERSION_LABEL=${VERSION_LABEL} \
@@ -119,11 +122,26 @@ curl https://raw.githubusercontent.com/kiali/kiali/${VERSION_LABEL}/deploy/opens
   NAMESPACE=istio-system  \
   VERBOSE_MODE=4  \
   IMAGE_PULL_POLICY_TOKEN="imagePullPolicy: Always" envsubst | oc create -n istio-system -f -
+*/
 
 echo "Create a new Kiali Route for the port 443"
 (oc get route kiali -n istio-system -o json|sed 's/80/443/')|oc apply -n istio-system -f -
 
 sleep 5
+
+
+///Adding EFK using ISTIO - https://istio.io/docs/tasks/telemetry/logs/fluentd/
+oc apply -f <(curl https://raw.githubusercontent.com/sidd-harth/aio/master/efk-logging-stack.yaml)
+oc apply -f <(curl https://raw.githubusercontent.com/sidd-harth/aio/master/fluentd-istio.yaml)
+
+////// //// (oc get route kibana -n logging -o json|sed 's/80/5601/')|oc apply -n logging -f -
+kubectl -n logging port-forward $(kubectl -n logging get pod -l app=kibana -o jsonpath='{.items[0].metadata.name}') 5601:5601 &
+
+Leave the command running. Press Ctrl-C to exit when done accessing the Kibana UI.
+Navigate to the Kibana UI and click the “Set up index patterns” in the top right.
+Use * as the index pattern, and click “Next step.”.
+Select @timestamp as the Time Filter field name, and click “Create index pattern.”
+Now click “Discover” on the left menu, and start exploring the logs generated
 
 
 echo "Docker Apigee Istio Openshift Installation Successful"
@@ -264,6 +282,7 @@ echo "Pool Ejection - Ultimate resilience with retries, circuit breaker, and poo
  oc delete destinationrule payment && oc delete virtualservice payment
 
 
+
 echo "Apigee Quota/APIKey"
 cd /home/apigee
 oc apply -f samples/apigee/definitions.yaml 
@@ -272,6 +291,43 @@ oc apply -f /home/apigee/apigee-istio-adapter-modified_1.0/samples/apigee/rule.y
 
 oc delete -f /home/apigee/apigee-istio-adapter-modified_1.0/samples/apigee/rule.yaml
 
+
+
+//// Citadel MTLS TLS
+oc get deploy -l istio=citadel -n istio-system
+
+oc exec $(oc get pod -l app=customer -o jsonpath={.items..metadata.name}) -c istio-proxy -- ls /etc/certs
+
+oc get secret --all-namespaces | grep istio.io/key-and-cert
+
+oc exec $(oc get pod -l app=customer -o jsonpath={.items..metadata.name}) -c istio-proxy -- cat /etc/certs/cert-chain.pem | openssl x509 -text -noout  | grep Validity -A 2
+
+oc get secret -o json istio.default -n tutorial | jq -r '.data["cert-chain.pem"]' | base64 --decode | openssl x509 -noout -text
+
+oc exec -it $(oc get pod -l app=customer -o jsonpath={.items..metadata.name}) -c istio-proxy -- ls /etc/certs
+
+oc exec $(oc get pod -l app=customer -o jsonpath={.items..metadata.name}) -c istio-proxy -- cat /etc/certs/cert-chain.pem | openssl x509 -text 
+oc exec $(oc get pod -l app=customer -o jsonpath={.items..metadata.name}) -c istio-proxy -- cat /etc/certs/key.pem 
+oc exec $(oc get pod -l app=customer -o jsonpath={.items..metadata.name}) -c istio-proxy -- cat /etc/certs/root-cert.pem 
+
+
+oc exec $(oc get pod -l app=customer -o jsonpath={.items..metadata.name}) -c istio-proxy -- curl http://customer:8080 -s
+
+oc exec $(oc get pod -l app=customer -o jsonpath={.items..metadata.name}) -c istio-proxy -- curl https://customer:8080 -s -k
+
+oc exec $(oc get pod -l app=customer -o jsonpath={.items..metadata.name})  -c istio-proxy -- curl https://customer:8080 --key /etc/certs/key.pem --cert /etc/certs/cert-chain.pem --cacert /etc/certs/root-cert.pem -k -s
+
+oc exec $(oc get pod -l app=customer -o jsonpath={.items..metadata.name})  -c istio-proxy -- curl http://customer:8080 --key /etc/certs/key.pem --cert /etc/certs/cert-chain.pem --cacert /etc/certs/root-cert.pem -k -s
+
+oc exec $(oc get pod -l app=customer -o jsonpath={.items..metadata.name})  -c istio-proxy -- curl http://customer-tutorial.2886795304-80-cykoria05.environments.katacoda.com/ -o /dev/null -s -w '%{http_code}\n' --key /etc/certs/key.pem --cert /etc/certs/cert-chain.pem --cacert /etc/certs/root-cert.pem -k
+
+
+curl https://customer-tutorial.2886795304-443-cykoria05.environments.katacoda.com/ -s -w '%{http_code}\n' --key /etc/certs/key.pem --cert /etc/certs/cert-chain.pem --cacert /etc/certs/root-cert.pem 
+
+curl http://customer-tutorial.2886795304-80-cykoria05.environments.katacoda.com/  -s -w '%{http_code}\n' --key key.pem --cert cert-chain.pem --cacert root-cert.pem -k
+
+
+////////
 
 
 oc delete virtualservice --all
@@ -286,6 +342,8 @@ oc get destinationrules
  oc get virtualservice -ojson
 
  oc delete virtualservice payment-mirror
+ oc delete all,secrets,sa,configmaps,deployments,ingresses,clusterroles,clusterrolebindings,virtualservices,destinationrules,customresourcedefinitions,templates --selector=app=kiali -n istio-system
+
 
 
 while true; do curl -s http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
