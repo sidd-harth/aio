@@ -47,7 +47,7 @@ gcp_external_IP=$(curl -H "Metadata-Flavor: Google" http://169.254.169.254/compu
 
 mkdir /home/installation && mkdir /home/installation/etcd && cd /home/installation
 
-oc cluster up --public-hostname=${gcp_external_IP} --metrics --logging=true --host-data-dir=/home/installation/etcd
+oc cluster up --public-hostname=${gcp_external_IP} --metrics  --host-data-dir=/home/installation/etcd
 oc login -u system:admin
 
 //creating an admin role to login into webconsole
@@ -97,8 +97,8 @@ oc expose svc prometheus -n istio-system &&
 oc expose svc tracing -n istio-system 
 
 echo "Kiali Dashboard - Define URLS for Jaeger and Grafana"
-export JAEGER_URL="https://tracing-istio-system.${gcp_external_IP}.nip.io" \
-export GRAFANA_URL="https://grafana-istio-system.${gcp_external_IP}.nip.io" \
+export JAEGER_URL="http://tracing-istio-system.${gcp_external_IP}.nip.io" \
+export GRAFANA_URL="http://grafana-istio-system.${gcp_external_IP}.nip.io" \
 export VERSION_LABEL="v0.16.0" \
 export AUTH_STRATEGY="anonymous"
 
@@ -136,7 +136,7 @@ oc apply -f <(curl https://raw.githubusercontent.com/sidd-harth/aio/master/efk-l
 oc apply -f <(curl https://raw.githubusercontent.com/sidd-harth/aio/master/fluentd-istio.yaml)
 
 ////// //// (oc get route kibana -n logging -o json|sed 's/80/5601/')|oc apply -n logging -f -
-kubectl -n logging port-forward $(kubectl -n logging get pod -l app=kibana -o jsonpath='{.items[0].metadata.name}') 5601:5601 &
+oc -n logging port-forward $(oc -n logging get pod -l app=kibana -o jsonpath='{.items[0].metadata.name}') 5601:5601 &
 
 Leave the command running. Press Ctrl-C to exit when done accessing the Kibana UI.
 Navigate to the Kibana UI and click the “Set up index patterns” in the top right.
