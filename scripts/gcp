@@ -299,6 +299,12 @@ oc delete -f /home/apigee/apigee-istio-adapter-modified_1.0/samples/apigee/rule.
 oc project aio
 yum install jq -y
 
+
+export INGRESS_PORT=$(oc -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].nodePort}'); \
+export GATEWAY_URL=http://customer-tutorial.2886795277-$INGRESS_PORT-cykoria05.environments.katacoda.com;
+
+
+
 oc get deploy -l istio=citadel -n istio-system
 
 oc exec $(oc get pod -l app=movies -o jsonpath={.items..metadata.name}) -c istio-proxy -- ls /etc/certs
@@ -316,21 +322,24 @@ oc exec $(oc get pod -l app=movies -o jsonpath={.items..metadata.name}) -c istio
 oc exec $(oc get pod -l app=movies -o jsonpath={.items..metadata.name}) -c istio-proxy -- cat /etc/certs/root-cert.pem 
 
 
-oc exec $(oc get pod -l app=movies -o jsonpath={.items..metadata.name}) -c istio-proxy -- curl http://movies:8080/booking -s
+oc exec $(oc get pod -l app=movies -o jsonpath={.items..metadata.name}) -c istio-proxy -- curl http://movies:8080/ -s
 
-oc exec $(oc get pod -l app=movies -o jsonpath={.items..metadata.name}) -c istio-proxy -- curl https://movies:8080/booking -s -k
+oc exec $(oc get pod -l app=movies -o jsonpath={.items..metadata.name}) -c istio-proxy -- curl https://movies:8080/ -s -k
 
-oc exec $(oc get pod -l app=movies -o jsonpath={.items..metadata.name})  -c istio-proxy -- curl https://movies:8080/booking --key /etc/certs/key.pem --cert /etc/certs/cert-chain.pem --cacert /etc/certs/root-cert.pem -k -s
+oc exec $(oc get pod -l app=movies -o jsonpath={.items..metadata.name})  -c istio-proxy -- curl https://movies:8080/ --key /etc/certs/key.pem --cert /etc/certs/cert-chain.pem --cacert /etc/certs/root-cert.pem -k -s
 
-oc exec $(oc get pod -l app=movies -o jsonpath={.items..metadata.name})  -c istio-proxy -- curl http://movies:8080/booking --key /etc/certs/key.pem --cert /etc/certs/cert-chain.pem --cacert /etc/certs/root-cert.pem -k -s
+oc exec $(oc get pod -l app=movies -o jsonpath={.items..metadata.name})  -c istio-proxy -- curl http://movies:8080/ --key /etc/certs/key.pem --cert /etc/certs/cert-chain.pem --cacert /etc/certs/root-cert.pem -k -s
 
 oc exec $(oc get pod -l app=movies -o jsonpath={.items..metadata.name})  -c istio-proxy -- curl http://movies-tutorial.2886795304-80-cykoria05.environments.katacoda.com/ -o /dev/null -s -w '%{http_code}\n' --key /etc/certs/key.pem --cert /etc/certs/cert-chain.pem --cacert /etc/certs/root-cert.pem -k
 
 
-curl https://movies-tutorial.2886795304-443-cykoria05.environments.katacoda.com/ -s -w '%{http_code}\n' --key /etc/certs/key.pem --cert /etc/certs/cert-chain.pem --cacert /etc/certs/root-cert.pem 
+oc project aio
 
-curl http://movies-tutorial.2886795304-80-cykoria05.environments.katacoda.com/  -s -w '%{http_code}\n' --key key.pem --cert cert-chain.pem --cacert root-cert.pem -k
+MOVIES_POD=$(oc get pod | grep movies | awk '{ print $1}' ); \
+oc exec -it $MOVIES_POD -c istio-proxy /bin/bash
 
+
+IP=$(ifconfig |grep inet |grep 172.|awk '{ print $2}'|sed -e 's/addr://g'); sudo tcpdump -vvvv -A -i eth0 '((dst port 8080) and (net '$IP'))'
 
 ////////
 
