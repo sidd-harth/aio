@@ -99,6 +99,7 @@ oc expose svc tracing -n istio-system
 echo "Kiali Dashboard - Define URLS for Jaeger and Grafana"
 export JAEGER_URL="http://tracing-istio-system.${gcp_external_IP}.nip.io" \
 export GRAFANA_URL="http://grafana-istio-system.${gcp_external_IP}.nip.io" \
+export IMAGE_VERSION="v0.16.0" \
 export VERSION_LABEL="v0.16.0" \
 export AUTH_STRATEGY="anonymous"
 
@@ -295,37 +296,40 @@ oc delete -f /home/apigee/apigee-istio-adapter-modified_1.0/samples/apigee/rule.
 
 
 //// Citadel MTLS TLS
+oc project aio
+yum install jq -y
+
 oc get deploy -l istio=citadel -n istio-system
 
-oc exec $(oc get pod -l app=customer -o jsonpath={.items..metadata.name}) -c istio-proxy -- ls /etc/certs
+oc exec $(oc get pod -l app=movies -o jsonpath={.items..metadata.name}) -c istio-proxy -- ls /etc/certs
 
 oc get secret --all-namespaces | grep istio.io/key-and-cert
 
-oc exec $(oc get pod -l app=customer -o jsonpath={.items..metadata.name}) -c istio-proxy -- cat /etc/certs/cert-chain.pem | openssl x509 -text -noout  | grep Validity -A 2
+oc exec $(oc get pod -l app=movies -o jsonpath={.items..metadata.name}) -c istio-proxy -- cat /etc/certs/cert-chain.pem | openssl x509 -text -noout  | grep Validity -A 2
 
-oc get secret -o json istio.default -n tutorial | jq -r '.data["cert-chain.pem"]' | base64 --decode | openssl x509 -noout -text
+oc get secret -o json istio.default -n aio | jq -r '.data["cert-chain.pem"]' | base64 --decode | openssl x509 -noout -text
 
-oc exec -it $(oc get pod -l app=customer -o jsonpath={.items..metadata.name}) -c istio-proxy -- ls /etc/certs
+oc exec -it $(oc get pod -l app=movies -o jsonpath={.items..metadata.name}) -c istio-proxy -- ls /etc/certs
 
-oc exec $(oc get pod -l app=customer -o jsonpath={.items..metadata.name}) -c istio-proxy -- cat /etc/certs/cert-chain.pem | openssl x509 -text 
-oc exec $(oc get pod -l app=customer -o jsonpath={.items..metadata.name}) -c istio-proxy -- cat /etc/certs/key.pem 
-oc exec $(oc get pod -l app=customer -o jsonpath={.items..metadata.name}) -c istio-proxy -- cat /etc/certs/root-cert.pem 
-
-
-oc exec $(oc get pod -l app=customer -o jsonpath={.items..metadata.name}) -c istio-proxy -- curl http://customer:8080 -s
-
-oc exec $(oc get pod -l app=customer -o jsonpath={.items..metadata.name}) -c istio-proxy -- curl https://customer:8080 -s -k
-
-oc exec $(oc get pod -l app=customer -o jsonpath={.items..metadata.name})  -c istio-proxy -- curl https://customer:8080 --key /etc/certs/key.pem --cert /etc/certs/cert-chain.pem --cacert /etc/certs/root-cert.pem -k -s
-
-oc exec $(oc get pod -l app=customer -o jsonpath={.items..metadata.name})  -c istio-proxy -- curl http://customer:8080 --key /etc/certs/key.pem --cert /etc/certs/cert-chain.pem --cacert /etc/certs/root-cert.pem -k -s
-
-oc exec $(oc get pod -l app=customer -o jsonpath={.items..metadata.name})  -c istio-proxy -- curl http://customer-tutorial.2886795304-80-cykoria05.environments.katacoda.com/ -o /dev/null -s -w '%{http_code}\n' --key /etc/certs/key.pem --cert /etc/certs/cert-chain.pem --cacert /etc/certs/root-cert.pem -k
+oc exec $(oc get pod -l app=movies -o jsonpath={.items..metadata.name}) -c istio-proxy -- cat /etc/certs/cert-chain.pem | openssl x509 -text 
+oc exec $(oc get pod -l app=movies -o jsonpath={.items..metadata.name}) -c istio-proxy -- cat /etc/certs/key.pem 
+oc exec $(oc get pod -l app=movies -o jsonpath={.items..metadata.name}) -c istio-proxy -- cat /etc/certs/root-cert.pem 
 
 
-curl https://customer-tutorial.2886795304-443-cykoria05.environments.katacoda.com/ -s -w '%{http_code}\n' --key /etc/certs/key.pem --cert /etc/certs/cert-chain.pem --cacert /etc/certs/root-cert.pem 
+oc exec $(oc get pod -l app=movies -o jsonpath={.items..metadata.name}) -c istio-proxy -- curl http://movies:8080/booking -s
 
-curl http://customer-tutorial.2886795304-80-cykoria05.environments.katacoda.com/  -s -w '%{http_code}\n' --key key.pem --cert cert-chain.pem --cacert root-cert.pem -k
+oc exec $(oc get pod -l app=movies -o jsonpath={.items..metadata.name}) -c istio-proxy -- curl https://movies:8080/booking -s -k
+
+oc exec $(oc get pod -l app=movies -o jsonpath={.items..metadata.name})  -c istio-proxy -- curl https://movies:8080/booking --key /etc/certs/key.pem --cert /etc/certs/cert-chain.pem --cacert /etc/certs/root-cert.pem -k -s
+
+oc exec $(oc get pod -l app=movies -o jsonpath={.items..metadata.name})  -c istio-proxy -- curl http://movies:8080/booking --key /etc/certs/key.pem --cert /etc/certs/cert-chain.pem --cacert /etc/certs/root-cert.pem -k -s
+
+oc exec $(oc get pod -l app=movies -o jsonpath={.items..metadata.name})  -c istio-proxy -- curl http://movies-tutorial.2886795304-80-cykoria05.environments.katacoda.com/ -o /dev/null -s -w '%{http_code}\n' --key /etc/certs/key.pem --cert /etc/certs/cert-chain.pem --cacert /etc/certs/root-cert.pem -k
+
+
+curl https://movies-tutorial.2886795304-443-cykoria05.environments.katacoda.com/ -s -w '%{http_code}\n' --key /etc/certs/key.pem --cert /etc/certs/cert-chain.pem --cacert /etc/certs/root-cert.pem 
+
+curl http://movies-tutorial.2886795304-80-cykoria05.environments.katacoda.com/  -s -w '%{http_code}\n' --key key.pem --cert cert-chain.pem --cacert root-cert.pem -k
 
 
 ////////
