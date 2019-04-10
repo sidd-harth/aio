@@ -346,6 +346,8 @@ IP=$(ifconfig |grep inet |grep 172.|awk '{ print $2}'|sed -e 's/addr://g'); sudo
 
 oc delete virtualservice --all
 oc delete destinationrules --all
+oc delete policy --all
+oc delete gateway --all
 
 oc get virtualservice 
 oc get destinationrules
