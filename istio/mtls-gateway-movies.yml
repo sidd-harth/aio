@@ -32,3 +32,11 @@ spec:
         host: movies
         port:
           number: 8080
+    corsPolicy:
+      allowOrigin:
+      - "*"
+      allowMethods:
+      - GET
+      allowHeaders:
+      - "*"
+      allowCredentials: true
