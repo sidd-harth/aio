@@ -33,10 +33,18 @@ spec:
         port:
           number: 8080
     corsPolicy:
-      allowOrigin:
-      - "*"
-      allowMethods:
-      - GET
-      allowHeaders:
-      - "*"
-      allowCredentials: true
+        allowCredentials: true
+        allowHeaders:
+          - x-api-key
+          - accept
+          - content-type
+          - origin
+        allowMethods:
+          - GET
+          - POST
+          - OPTIONS
+        allowOrigin:
+          - '*'
+        exposeHeaders:
+          - '*'
+        maxAge: 24h 

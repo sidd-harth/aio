@@ -1,0 +1,42 @@
+apiVersion: config.istio.io/v1alpha2
+kind: HTTPAPISpec
+metadata:
+  creationTimestamp: null
+  name: movies
+  namespace: aio
+spec:
+  apiKeys:
+  - query: apikey
+  - header: x-api-key
+  attributes:
+    attributes:
+      api.service:
+        stringValue: movies.aio.svc.cluster.local
+  patterns:
+  - attributes:
+      attributes:
+        api.operation:
+            stringValue: /
+    httpMethod: GET
+    uriTemplate: /
+  - attributes:
+      attributes:
+        api.operation:
+            stringValue: /ui
+    httpMethod: GET
+    uriTemplate: /ui
+---
+# Bind the API to a service
+apiVersion: config.istio.io/v1alpha2
+kind: HTTPAPISpecBinding
+metadata:
+  creationTimestamp: null
+  name: movies-binding
+  namespace: aio
+spec:
+  api_specs:
+  - name: movies
+    namespace: aio
+  services:
+  - name: movies
+    namespace: aio

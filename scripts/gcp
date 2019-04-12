@@ -291,6 +291,9 @@ oc apply -f samples/apigee/definitions.yaml
 oc apply -f samples/apigee/handler.yaml 
 oc apply -f /home/apigee/apigee-istio-adapter-modified_1.0/samples/apigee/rule.yaml
 
+
+oc delete -f samples/apigee/definitions.yaml 
+oc delete -f samples/apigee/handler.yaml 
 oc delete -f /home/apigee/apigee-istio-adapter-modified_1.0/samples/apigee/rule.yaml
 
 
@@ -376,3 +379,226 @@ Rate of requests over the past 25 minutes to all instances of the payment servic
 rate(istio_requests_total{destination_service=~"payment.*", response_code="200"}[25m])
 
 
+export INGRESS_HOST=$(oc -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+export INGRESS_PORT=$(oc -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].port}')
+export SECURE_INGRESS_PORT=$(oc -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="https")].port}')
+
+echo ${INGRESS_HOST} ${INGRESS_PORT} ${SECURE_INGRESS_PORT}
+
+
+./generate.sh movies-aio.35.244.32.156.nip.io password
+
+mkdir ~+1/movies-cert && mv 1_root 2_intermediate 3_application 4_client ~+1/movies-cert
+
+oc create -n istio-system secret tls istio-ingressgateway-certs --key movies-cert2/3_application/private/movies-aio.35.244.32.156.nip.io.key.pem --cert movies-cert2/3_application/certs/movies-aio.35.244.32.156.nip.io.cert.pem
+
+oc exec -it -n istio-system $(oc -n istio-system get pods -l istio=ingressgateway -o jsonpath='{.items[0].metadata.name}') -- ls -al /etc/istio/ingressgateway-certs
+
+
+oc apply -f - <<EOF
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: movies-gateway
+spec:
+  selector:
+    istio: ingressgateway # use istio default ingress gateway
+  servers:
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      serverCertificate: /etc/istio/ingressgateway-certs/tls.crt
+      privateKey: /etc/istio/ingressgateway-certs/tls.key
+    hosts:
+    - "movies-aio.35.244.32.156.nip.io"
+EOF
+
+
+oc apply -f - <<EOF
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: movies
+  namespace: aio
+spec:
+  hosts:
+  - "movies-aio.35.244.32.156.nip.io"
+  gateways:
+  - movies-gateway
+  http:
+  - match:
+    - uri:
+        exact: /
+    route:
+    - destination:
+        port:
+          number: 8080
+        host: movies
+EOF
+
+oc apply -f <(curl https://raw.githubusercontent.com/sidd-harth/aio/master/istio/mtls-auth-enable-STRICT-tls.yml)
+
+
+curl -v -HHost:movies-aio.35.244.32.156.nip.io --resolve movies-aio.35.244.32.156.nip.io:$SECURE_INGRESS_PORT:$INGRESS_HOST --cacert movies-cert2/2_intermediate/certs/ca-chain.cert.pem https://movies-aio.35.244.32.156.nip.io:$SECURE_INGRESS_PORT
+
+RESPONSE
+[root@apigee-istio-openshift mtls-certs]# curl -v -HHost:movies-aio.35.244.32.156.nip.io --resolve movies-aio.35.244.32.156.nip.io:$SECURE_INGRESS_PORT:$INGRESS_HOST --cacert movies-cert2/2_intermediate/certs/ca-chain.cert.pem --cert movies-cert2/4_client/certs/movies-aio.35.244.32.156.nip.io.cert.pem --key movies-cert2/4_client/private/movies-aio.35.244.32.156.nip.io.key.pem https://movies-aio.35.244.32.156.nip.io:$SECURE_INGRESS_PORT
+* Added movies-aio.35.244.32.156.nip.io:443:172.29.100.36 to DNS cache
+* About to connect() to movies-aio.35.244.32.156.nip.io port 443 (#0)
+*   Trying 172.29.100.36...
+* Connected to movies-aio.35.244.32.156.nip.io (172.29.100.36) port 443 (#0)
+* Initializing NSS with certpath: sql:/etc/pki/nssdb
+*   CAfile: movies-cert2/2_intermediate/certs/ca-chain.cert.pem
+  CApath: none
+* SSL connection using TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+* Server certificate:
+*       subject: CN=movies-aio.35.244.32.156.nip.io,O=Dis,L=Springfield,ST=Denial,C=US
+*       start date: Apr 10 08:55:39 2019 GMT
+*       expire date: Apr 19 08:55:39 2020 GMT
+*       common name: movies-aio.35.244.32.156.nip.io
+*       issuer: CN=movies-aio.35.244.32.156.nip.io,O=Dis,ST=Denial,C=US
+> GET / HTTP/1.1
+> User-Agent: curl/7.29.0
+> Accept: */*
+> Host:movies-aio.35.244.32.156.nip.io
+> 
+< HTTP/1.1 200 OK
+< content-type: text/plain;charset=UTF-8
+< content-length: 102
+< date: Wed, 10 Apr 2019 10:15:50 GMT
+< x-envoy-upstream-service-time: 20
+< server: envoy
+< 
+movies-v1 => booking-ticket-v1 => payment-service-version-1 - pod-ip -  payment-v1-66dc47d49-dpwmp 85
+* Connection #0 to host movies-aio.35.244.32.156.nip.io left intact
+
+/////////////////////**********&^%$#@$%^&   MTLS - MUTUALLLLLLLLLLLLLLLLLL
+
+oc create -n istio-system secret generic istio-ingressgateway-ca-certs --from-file=movies-cert2/2_intermediate/certs/ca-chain.cert.pem
+
+
+change TLS mode from simple to MUTUAL,
+
+
+oc apply -f - <<EOF
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: movies-gateway
+spec:
+  selector:
+    istio: ingressgateway # use istio default ingress gateway
+  servers:
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: MUTUAL
+      serverCertificate: /etc/istio/ingressgateway-certs/tls.crt
+      privateKey: /etc/istio/ingressgateway-certs/tls.key
+      caCertificates: /etc/istio/ingressgateway-ca-certs/ca-chain.cert.pem
+    hosts:
+    - "movies-aio.35.244.32.156.nip.io"
+EOF
+
+
+
+curl -v -HHost:movies-aio.35.244.32.156.nip.io --resolve movies-aio.35.244.32.156.nip.io:$SECURE_INGRESS_PORT:$INGRESS_HOST --cacert movies-cert2/2_intermediate/certs/ca-chain.cert.pem --cert movies-cert2/4_client/certs/movies-aio.35.244.32.156.nip.io.cert.pem --key movies-cert2/4_client/private/movies-aio.35.244.32.156.nip.io.key.pem https://movies-aio.35.244.32.156.nip.io:$SECURE_INGRESS_PORT
+
+
+RESPONSE
+ntermediate/certs/ca-chain.cert.pem --cert movies-cert2/4_client/certs/movies-aio.35.244.32.156.nip.io.cert.pem --key movies-cert2/4_client/private/movies-aio.35.244.32.156.nip.io.key.pem https://movies-aio.35.244.32.156.nip.io
+* Added movies-aio.35.244.32.156.nip.io:443:172.29.100.36 to DNS cache
+* About to connect() to movies-aio.35.244.32.156.nip.io port 443 (#0)
+*   Trying 172.29.100.36...
+* Connected to movies-aio.35.244.32.156.nip.io (172.29.100.36) port 443 (#0)
+* Initializing NSS with certpath: sql:/etc/pki/nssdb
+*   CAfile: movies-cert2/2_intermediate/certs/ca-chain.cert.pem
+  CApath: none
+* NSS: client certificate from file
+*       subject: CN=movies-aio.35.244.32.156.nip.io,O=Dis,L=Springfield,ST=Denial,C=US
+*       start date: Apr 10 08:55:42 2019 GMT
+*       expire date: Apr 19 08:55:42 2020 GMT
+*       common name: movies-aio.35.244.32.156.nip.io
+*       issuer: CN=movies-aio.35.244.32.156.nip.io,O=Dis,ST=Denial,C=US
+* SSL connection using TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+* Server certificate:
+*       subject: CN=movies-aio.35.244.32.156.nip.io,O=Dis,L=Springfield,ST=Denial,C=US
+*       start date: Apr 10 08:55:39 2019 GMT
+*       expire date: Apr 19 08:55:39 2020 GMT
+*       common name: movies-aio.35.244.32.156.nip.io
+*       issuer: CN=movies-aio.35.244.32.156.nip.io,O=Dis,ST=Denial,C=US
+> GET / HTTP/1.1
+> User-Agent: curl/7.29.0
+> Accept: */*
+> Host:movies-aio.35.244.32.156.nip.io
+> 
+< HTTP/1.1 200 OK
+< content-type: text/plain;charset=UTF-8
+< content-length: 102
+< date: Wed, 10 Apr 2019 09:53:03 GMT
+< x-envoy-upstream-service-time: 26
+< server: envoy
+< 
+movies-v1 => booking-ticket-v1 => payment-service-version-1 - pod-ip -  payment-v1-66dc47d49-dpwmp 82
+* Connection #0 to host movies-aio.35.244.32.156.nip.io left intact
+
+
+
+=========
+
+
+
+
+
+
+
+check htttps with gateway and add cors to virtual service in mtls example
+
+
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: customer-gateway
+spec:
+  selector:
+    istio: ingressgateway # use istio default controller
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: customer
+  namespace: tutorial
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - customer-gateway
+  http:
+  - match:
+    - uri:
+        exact: /
+    route:
+    - destination:
+        host: customer
+        port:
+          number: 8080
+    corsPolicy:
+      allowOrigin:
+      - "*"
+      allowMethods:
+      - GET
+      allowHeaders:
+      - "*"
+      allowCredentials: true
