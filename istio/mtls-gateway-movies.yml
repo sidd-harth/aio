@@ -27,6 +27,8 @@ spec:
   - match:
     - uri:
         exact: /
+    - uri:
+        exact: /ui
     route:
     - destination:
         host: movies
