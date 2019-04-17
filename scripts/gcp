@@ -45,9 +45,9 @@ oc version
 echo "GET GCP External IP Address" 
 gcp_external_IP=$(curl -H "Metadata-Flavor: Google" http://169.254.169.254/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip)
 
-mkdir /home/installation && mkdir /home/installation/etcd && cd /home/installation
+mkdir /home/installation && mkdir /home/installation/etcd8 && cd /home/installation
 
-oc cluster up --public-hostname=${gcp_external_IP} --metrics  --host-data-dir=/home/installation/etcd
+oc cluster up --public-hostname=${gcp_external_IP} --metrics  --host-data-dir=/home/installation/etcd8
 oc login -u system:admin
 
 //creating an admin role to login into webconsole
@@ -128,6 +128,8 @@ curl https://raw.githubusercontent.com/kiali/kiali/${VERSION_LABEL}/deploy/opens
 
 echo "Create a new Kiali Route for the port 443"
 (oc get route kiali -n istio-system -o json|sed 's/80/443/')|oc apply -n istio-system -f -
+(oc get route movies -n aio -o json|sed 's/80/443/')|oc apply -n aio -f -
+(oc get route movies -n aio -o json|sed 's/80/443/')|oc apply -n aio -f -
 
 sleep 5
 
@@ -157,7 +159,7 @@ echo "Docker Apigee Istio Openshift Installation Successful"
 
 
 echo "Installing Services"
-mkdir /home/services && cd /home/services
+mkdir /home/services2 && cd /home/services2
 git clone https://github.com/sidd-harth/aio
 cd aio/kubernetes/kube-injected/
 
@@ -200,7 +202,7 @@ oc expose svc ui -n aio
 echo "Simple Routing v1 v2 - round robin  all calls to one version Canary deployment: Split traffic between v1 and v2 - 90 10 - 75 25 - 50 50 - 0 100"
  oc apply -f destination-rule-movies-v1-v2.yml
  oc apply -f virtual-service-movies-v1_100.yml
- oc apply -f ../kubernetes/kube-injected/movies-v2-deployment-injected.yml -n aio
+ oc apply -f movies-v2-deployment-injected.yml -n aio
 
  oc replace -f virtual-service-movies-v1_and_v2_10_90.yml
  oc replace -f virtual-service-movies-v1_and_v2_50_50.yml
@@ -211,7 +213,7 @@ echo "Simple Routing v1 v2 - round robin  all calls to one version Canary deploy
  oc scale deployment movies-v1 --replicas=0 -n aio
 
 echo "Advacned Routing"
- oc apply -f ../kubernetes/kube-injected/payment-v2-deployment-injected.yml -n aio
+ oc apply -f payment-v2-deployment-injected.yml -n aio
 
 echo "Mirroring Traffic (Dark Launch)" 
  oc apply -f destination-rule-payment-v1-v2.yml
