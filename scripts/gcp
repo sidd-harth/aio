@@ -48,9 +48,9 @@ oc version
 echo "GET GCP External IP Address" 
 gcp_external_IP=$(curl -H "Metadata-Flavor: Google" http://169.254.169.254/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip)
 
-mkdir /home/installation && mkdir /home/installation/etcd9 && cd /home/installation
+mkdir /home/installation && mkdir /home/installation/etcd10 && cd /home/installation
 
-oc cluster up --public-hostname=${gcp_external_IP} --metrics  --host-data-dir=/home/installation/etcd9
+oc cluster up --public-hostname=${gcp_external_IP} --metrics  --host-data-dir=/home/installation/etcd10
 oc login -u system:admin
 
 //creating an admin role to login into webconsole
@@ -110,8 +110,9 @@ bash <(curl -L https://raw.githubusercontent.com/sidd-harth/aio/master/kiali-set
 
 echo "Create a new Kiali Route for the port 443"
 (oc get route kiali -n istio-system -o json|sed 's/80/443/')|oc apply -n istio-system -f -
-(oc get route movies -n aio -o json|sed 's/80/443/')|oc apply -n aio -f -
-(oc get route movies -n aio -o json|sed 's/80/443/')|oc apply -n aio -f -
+
+//// (oc get route movies -n aio -o json|sed 's/80/443/')|oc apply -n aio -f -
+//// (oc get route movies -n aio -o json|sed 's/80/443/')|oc apply -n aio -f -
 
 sleep 5
 
@@ -120,16 +121,7 @@ echo "Adding EFK using ISTIO - https://istio.io/docs/tasks/telemetry/logs/fluent
 oc apply -f <(curl https://raw.githubusercontent.com/sidd-harth/aio/master/efk-logging-stack.yaml)
 oc apply -f <(curl https://raw.githubusercontent.com/sidd-harth/aio/master/fluentd-istio.yaml)
 
-echo "using port forwarding and show Kibana on local machine"
-(oc get route kibana -n logging -o json|sed 's/80/5601/')|oc apply -n logging -f -
-oc -n logging port-forward $(oc -n logging get pod -l app=kibana -o jsonpath='{.items[0].metadata.name}') 5601:5601 &
-echo "using "
 
-echo "Leave the command running. Press Ctrl-C to exit when done accessing the Kibana UI.
-Navigate to the Kibana UI and click the Set up index patterns in the top right.
-Use * as the index pattern, and click Next step..
-Select @timestamp as the Time Filter field name, and click Create index pattern.
-Now click “Discover” on the left menu, and start exploring the logs generated "
 
 echo "Apigee Quota/APIKey"
 cd /home/apigee
@@ -143,11 +135,8 @@ echo "Docker Apigee Istio Openshift Installation Successful"
 
 
 
-
-
-
 echo "Installing Services"
-mkdir /home/services3 && cd /home/services3
+mkdir /home/services4 && cd /home/services4
 git clone https://github.com/sidd-harth/aio
 cd aio/kubernetes/kube-injected/
 
@@ -181,14 +170,16 @@ oc expose svc ui -n aio
 
 
 
-
-
+oc get routes 
+ while true; do curl -s http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
 
 
 
 
 echo "Simple Routing v1 v2 - round robin  all calls to one version Canary deployment: Split traffic between v1 and v2 - 90 10 - 75 25 - 50 50 - 0 100"
  oc apply -f movies-v2-deployment-injected.yml -n aio
+ 
+cd /home/services/aio/istio
  oc apply -f destination-rule-movies-v1-v2.yml
  oc apply -f virtual-service-movies-v1_100.yml
  while true; do curl -s http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
@@ -202,7 +193,7 @@ echo "Simple Routing v1 v2 - round robin  all calls to one version Canary deploy
  oc scale deployment movies-v1 --replicas=0 -n aio
 
 echo "Advacned Routing"
- oc apply -f payment-v2-deployment-injected.yml -n aio
+ oc apply -f /home/services4/aio/kubernetes/kube-injected/payment-v2-deployment-injected.yml -n aio
 
 echo "Mirroring Traffic (Dark Launch)" 
  oc apply -f destination-rule-payment-v1-v2.yml
@@ -273,6 +264,12 @@ echo "Pool Ejection - Ultimate resilience with retries, circuit breaker, and poo
   while true; do  curl -s http://movies-aio.${gcp_external_IP}.nip.io  | grep --color -E 'payment-v2|$' ; sleep .5; done
  oc delete destinationrule payment && oc delete virtualservice payment
 
+
+ oc exec -it $(oc get pods|grep payment-v2|awk '{ print $1 }'|head -1) -c payment /bin/bash
+ curl localhost:8080/behave
+ exit
+   while true; do  curl -s http://movies-aio.${gcp_external_IP}.nip.io  | grep --color -E 'payment-v2|$' ; sleep .5; done
+
 echo "Egress"
   make a http call in browser and check payment/httpbin
   curl -s http://payment-aio.${gcp_external_IP}.nip.io/httpbin
@@ -280,6 +277,21 @@ echo "Egress"
 
 
 echo "Show Jaeger, Grafana, Kiali Prometheus, Kibana"
+http://servicegraph-istio-system.35.244.32.156.nip.io/dotviz
+
+echo "check Kibana EFK"
+echo "using port forwarding and show Kibana on local machine"
+
+create a route in the webconsole
+(oc get route kibana -n logging -o json|sed 's/80/5601/')|oc apply -n logging -f -
+oc -n logging port-forward $(oc -n logging get pod -l app=kibana -o jsonpath='{.items[0].metadata.name}') 5601:5601 &
+echo "using "
+
+echo "Leave the command running. Press Ctrl-C to exit when done accessing the Kibana UI.
+Navigate to the Kibana UI and click the Set up index patterns in the top right.
+Use * as the index pattern, and click Next step..
+Select @timestamp as the Time Filter field name, and click Create index pattern.
+Now click “Discover” on the left menu, and start exploring the logs generated "
 
 echo "Prometheus cmd" 
 istio_requests_total
@@ -289,6 +301,8 @@ istio_requests_total{destination_service="payment.aio.svc.cluster.local", destin
 
 echo "Rate of requests over the past 25 minutes to all instances of the payment service: "
 rate(istio_requests_total{destination_service=~"payment.*", response_code="200"}[25m])
+rate(istio_requests_total{destination_service=~"payment.*", response_code="401"}[25m])
+rate(istio_requests_total{destination_service=~"payment.*", response_code="503"}[25m])
 
 
 echo "Citadel MTLS TLS"
