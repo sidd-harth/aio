@@ -633,3 +633,22 @@ curl https://raw.githubusercontent.com/kiali/kiali/${VERSION_LABEL}/deploy/opens
   VERBOSE_MODE=4  \
   IMAGE_PULL_POLICY_TOKEN="imagePullPolicy: Always" envsubst | oc create -n istio-system -f -
 */
+
+
+echo "DialogFlow Payment Destinationrule & VirtualService"
+     //oc apply -f <(curl -s https://raw.githubusercontent.com/sidd-harth/aio/master/istio/destination-rule-payment-v1-v2.yml)
+     //oc apply -f <(curl -s https://raw.githubusercontent.com/sidd-harth/aio/master/istio/dialogFlow-payment-v2.yml)
+first both payment v1 and v2 should be runnning
+then we will show payment v2 giving misbahevae 503 
+route all traffic to payment v1 --- oc apply -f <(curl https://raw.githubusercontent.com/sidd-harth/aio/master/istio/dialogFlow-payment-v1-100.yml)
+behave pay v2 200
+replace pay vs with cananry vs -- oc apply -f <(curl https://raw.githubusercontent.com/sidd-harth/aio/master/istio/dialogFlow-payment-v2-10.yml)
+both v1 and v2 oc delete -f <(curl https://raw.githubusercontent.com/sidd-harth/aio/master/istio/dialogFlow-payment-v2-10.yml)
+only v2 both v1 and v2 - oc apply -f <(curl https://raw.githubusercontent.com/sidd-harth/aio/master/istio/dialogFlow-payment-v2.yml)
+
+
+
+remove payment v2 service or discontinue traffic to payment v2 service
+add payment v2 service to production instance and route only 10% traffic to it. or route only 10% traffic to payment v2
+route traffic to payment v1 and v2 service equally
+route all traffic to payment v2
