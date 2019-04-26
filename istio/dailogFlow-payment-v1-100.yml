@@ -1,0 +1,15 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: payment
+  namespace: aio
+spec:
+  hosts:
+  - payment
+  http:
+  - route:
+    - destination:
+        host: payment
+        subset: version-v1
+      weight: 100
+---
