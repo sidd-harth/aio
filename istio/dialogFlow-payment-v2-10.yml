@@ -11,9 +11,9 @@ spec:
     - destination:
         host: payment
         subset: version-v1
-      weight: 10
+      weight: 90
     - destination:
         host: payment
         subset: version-v2
-      weight: 90
+      weight: 10
 ---
