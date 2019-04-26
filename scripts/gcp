@@ -371,7 +371,10 @@ oc delete -f /home/apigee/apigee-istio-adapter-modified_1.0/samples/apigee/rule.
 
 
 echo "Deleting configs"
+oc project aio
 oc delete virtualservice --all && oc delete destinationrules --all && oc delete policy --all && oc delete gateway --all
+
+
 
 oc get virtualservice 
 oc get destinationrules
