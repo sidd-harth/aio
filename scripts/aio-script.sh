@@ -192,6 +192,8 @@ cd /home/services/aio/istio
 
  oc scale deployment movies-v1 --replicas=0 -n aio
 
+****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@
+
 echo "Advacned Routing"
  oc apply -f /home/services4/aio/kubernetes/kube-injected/payment-v2-deployment-injected.yml -n aio
 
@@ -204,11 +206,15 @@ echo "Mirroring Traffic (Dark Launch)"
  oc logs -f $(oc get pods|grep payment-v2|awk '{ print $1 }') -c payment --tail=10
  oc logs -f $(oc get pods|grep payment-v1|awk '{ print $1 }') -c payment --tail=10
 
+****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@
+
 echo "user-agent header (Canary Deployment)"
  oc replace -f virtual-service-firefox-payment-v2.yml
  while true; do  curl -s http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
  while true; do  curl -s -A "Firefox" http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
  oc delete destinationrule payment && oc delete virtualservice payment
+
+****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@
 
 echo "Load Balancer (multiple replicas and random load balancing)"
  oc scale deployment payment-v2 --replicas=3 -n aio
@@ -222,6 +228,8 @@ echo "Load Balancer (multiple replicas and random load balancing)"
  while true; do  curl -s http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
  oc delete destinationrule payment
 
+****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@
+
 echo "Fault Injection HTTP Error 401"
  oc apply -f fi-destination-rule-payment.yml
  oc apply -f fi-virtual-service-payment-401.yml
@@ -230,6 +238,8 @@ echo "Fault Injection HTTP Error 401"
   while true; do  curl -s http://booking-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
 
  oc delete -f fi-virtual-service-payment-401.yml
+
+****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@
  
 echo "Circuit Breaker (only requires Destination Rules)"
 echo "Siege Installation"
@@ -245,6 +255,8 @@ echo "Delay and CiruitBreaker - Fail Fast with Max Connections & Max Pending Req
  oc replace -f fi-destination-rule-payment_cb_policy.yml
     siege -r 3 -c 10  -v movies-aio.${gcp_external_IP}.nip.io
  oc delete destinationrule payment && oc delete virtualservice payment
+
+****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@
 
 echo "Pool Ejection - Ultimate resilience with retries, circuit breaker, and pool ejection"
  oc scale deployment payment-v2 --replicas=2 -n aio
@@ -270,11 +282,14 @@ echo "Pool Ejection - Ultimate resilience with retries, circuit breaker, and poo
  exit
    while true; do  curl -s http://movies-aio.${gcp_external_IP}.nip.io  | grep --color -E 'payment-v2|$' ; sleep .5; done
 
+****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@
+
 echo "Egress"
   make a http call in browser and check payment/httpbin
   curl -s http://payment-aio.${gcp_external_IP}.nip.io/httpbin
   oc apply -f service-entry-egress-httpbin.yml
 
+****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@
 
 echo "Show Jaeger, Grafana, Kiali Prometheus, Kibana"
 http://servicegraph-istio-system.35.244.32.156.nip.io/dotviz
