@@ -1,7 +1,7 @@
 # Work In Progress - it will not digest if consumed :E
 # AIO - Apigee Istio Openshift Demo
 
-![Demo Architecture](demo-architeture.gif)
+![Demo Architecture](demo-architeture2.gif)
 
 change VERSION2 in ayment v2 and also see count number in new lineee
 
