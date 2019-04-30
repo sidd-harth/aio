@@ -1,6 +1,9 @@
+## *** !!! Work in Progress - it will not digest if consumed :E !!! ****
+
+
 # AIO - Apigee Istio Openshift Demo
-## Work In Progress - it will not digest if consumed :E
-This repository includes the instructions and scripts for running and understanding Istio Service Mesh. Istio is used for managing microservices.
+This repository includes the instructions and scripts for running and understanding Istio Service Mesh. 
+
 ![Demo Architecture](demo-architecture2.gif)
 
 ## Prerequisites
