@@ -51,4 +51,15 @@ curl http://movies-aio.xx.xxx.xx.xx.nip.io
 * Run `oc get routes -n istio-system` 
 * Check sample [images](https://github.com/sidd-harth/aio/tree/master/images)
 
+## License
+This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/sidd-harth/aio/blob/master/LICENSE) file for details
 
+## Acknowledgments
+* All the below docs and demos have helped me to understand and create this project. 
+* I might have missed few of them, will add them as I remember.
+* https://istio.io/
+* https://developers.redhat.com
+* https://blog.openshift.com/istio-on-openshift/
+* http://blog.christianposta.com/istio-workshop/slides/
+* https://docs.apigee.com/api-platform/istio-adapter/concepts
+* Istio: Canaries and Kubernetes, Microservices and Service Mesh by BurrSutter
