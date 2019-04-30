@@ -7,7 +7,7 @@ wget https://github.com/apigee/istio-mixer-adapter/releases/download/1.0.5/istio
 tar -xvzf istio-mixer-adapter_1.0.5_linux_64-bit.tar.gz 
 export PATH=$PATH:$(pwd)
 apigee-istio version
-apigee-istio provision -f -o mamillarevathi-eval -e test -u mamilla.revathi@tavant.com -p Qwerty@67 > samples/apigee/handler.yaml 
+apigee-istio provision -f -o {organization} -e {environment} -u {user-email} -p {user-password} > samples/apigee/handler.yaml 
 
 cd /home/apigee 
 wget https://github.com/sidd-harth/apigee-istio-adapter/archive/modified_1.0.tar.gz
