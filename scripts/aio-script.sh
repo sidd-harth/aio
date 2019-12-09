@@ -168,21 +168,18 @@ oc apply -f ui-v1-deployment-injected.yml -n aio
 oc create -f ui-service.yml -n aio
 oc expose svc ui -n aio
 
-
-
 oc get routes 
- while true; do curl -s http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
 
-
-
-
-echo "Simple Routing v1 v2 - round robin  all calls to one version Canary deployment: Split traffic between v1 and v2 - 90 10 - 75 25 - 50 50 - 0 100"
- oc apply -f movies-v2-deployment-injected.yml -n aio
- 
 cd /home/services/aio/istio
  oc apply -f destination-rule-movies-v1-v2.yml
  oc apply -f virtual-service-movies-v1_100.yml
+ oc apply -f destination-rule-payment-v1-v2.yml
+ oc apply -f virtual-service-payment-v1_100.yml
+ 
  while true; do curl -s http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
+
+echo "Simple Routing v1 v2 - round robin  all calls to one version Canary deployment: Split traffic between v1 and v2 - 90 10 - 75 25 - 50 50 - 0 100"
+ oc apply -f movies-v2-deployment-injected.yml -n aio
 
  oc replace -f virtual-service-movies-v1_and_v2_10_90.yml
  oc replace -f virtual-service-movies-v1_and_v2_50_50.yml
@@ -198,8 +195,7 @@ echo "Advacned Routing"
  oc apply -f /home/services4/aio/kubernetes/kube-injected/payment-v2-deployment-injected.yml -n aio
 
 echo "Mirroring Traffic (Dark Launch)" 
- oc apply -f destination-rule-payment-v1-v2.yml
- oc apply -f virtual-service-payment-v1-mirror-v2.yml
+ oc replace -f virtual-service-payment-v1-mirror-v2.yml
  
  while true; do  curl -s http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
 
