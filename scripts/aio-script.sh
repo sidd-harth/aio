@@ -53,6 +53,9 @@ mkdir /home/installation && mkdir /home/installation/etcd10 && cd /home/installa
 oc cluster up --public-hostname=${gcp_external_IP} --metrics  --host-data-dir=/home/installation/etcd10
 oc login -u system:admin
 
+// add imagestream redhat openjdk
+oc create -f https://gist.githubusercontent.com/tqvarnst/3ca512b01b7b7c1a1da0532939350e23/raw/1973a8baf6e398f534613108e0ec5a774a76babe/openjdk-s2i-imagestream.json -n openshift
+
 //creating an admin role to login into webconsole
 oc create clusterrolebinding registry-controller --clusterrole=cluster-admin --user=admin
 
