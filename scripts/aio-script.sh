@@ -292,6 +292,8 @@ echo "Egress"
 
 echo "Show Jaeger, Grafana, Kiali Prometheus, Kibana"
 http://servicegraph-istio-system.35.244.32.156.nip.io/dotviz
+http://servicegraph-istio-system.35.244.32.156.nip.io/force/forcegraph.html
+
 
 echo "check Kibana EFK"
 echo "using port forwarding and show Kibana on local machine"
