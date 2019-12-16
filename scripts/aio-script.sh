@@ -59,6 +59,14 @@ oc create -f https://gist.githubusercontent.com/tqvarnst/3ca512b01b7b7c1a1da0532
 //creating an admin role to login into webconsole
 oc create clusterrolebinding registry-controller --clusterrole=cluster-admin --user=admin
 
+
+echo "Manual Step to build in HCL Network"
+cd /home
+mkdir oc-build && mkdir deployments
+cp home/openshift-jenkins-0.0.1-SNAPSHOT.jar oc-build/deployments/ROOT.jar
+oc start-build ${APP_NAME}  --from-dir=oc-build --wait=true  --follow
+
+
 oc adm policy add-scc-to-user anyuid -z istio-ingress-service-account -n istio-system &&
 oc adm policy add-scc-to-user anyuid -z default -n istio-system &&
 oc adm policy add-scc-to-user anyuid -z prometheus -n istio-system &&
