@@ -62,8 +62,8 @@ oc create clusterrolebinding registry-controller --clusterrole=cluster-admin --u
 
 echo "Manual Step to build in HCL Network"
 cd /home
-mkdir oc-build && mkdir deployments
-cp home/openshift-jenkins-0.0.1-SNAPSHOT.jar oc-build/deployments/ROOT.jar
+mkdir oc-build && mkdir oc-build/deployments
+cp /home/onlineman47/openshift-jenkins-0.0.1-SNAPSHOT.jar /home/oc-build/deployments/ROOT.jar
 oc start-build ${APP_NAME}  --from-dir=oc-build --wait=true  --follow
 
 
