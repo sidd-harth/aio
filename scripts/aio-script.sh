@@ -64,6 +64,8 @@ echo "Manual Step to build in HCL Network"
 cd /home
 mkdir oc-build && mkdir oc-build/deployments
 cp /home/onlineman47/openshift-jenkins-0.0.1-SNAPSHOT.jar /home/oc-build/deployments/ROOT.jar
+
+oc project dev
 oc delete all -l app=openshift-mysql
 oc start-build openshift-mysql  --from-dir=oc-build --wait=true  --follow
 
