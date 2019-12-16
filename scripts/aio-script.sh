@@ -64,7 +64,8 @@ echo "Manual Step to build in HCL Network"
 cd /home
 mkdir oc-build && mkdir oc-build/deployments
 cp /home/onlineman47/openshift-jenkins-0.0.1-SNAPSHOT.jar /home/oc-build/deployments/ROOT.jar
-oc start-build ${APP_NAME}  --from-dir=oc-build --wait=true  --follow
+oc delete all -l app=openshift-mysql
+oc start-build openshift-mysql  --from-dir=oc-build --wait=true  --follow
 
 
 oc adm policy add-scc-to-user anyuid -z istio-ingress-service-account -n istio-system &&
