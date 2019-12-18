@@ -184,6 +184,8 @@ oc expose svc ui -n aio
 
 oc get routes 
 
+echo "https://istio.io/docs/ops/best-practices/traffic-management/"
+
 cd /home/services/aio/istio
  oc apply -f destination-rule-movies-v1-v2.yml
  oc apply -f virtual-service-movies-v1_100.yml
