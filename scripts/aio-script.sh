@@ -711,4 +711,4 @@ oc  delete gateway grafana-gateway kiali-gateway prometheus-gateway tracing-gate
 
 
 echo "Remove all related Virtual Services:"
-oc virtualservice grafana-vs kiali-vs prometheus-vs tracing-vs -n istio-system delete
+oc delete virtualservice grafana-vs kiali-vs prometheus-vs tracing-vs -n istio-system 
