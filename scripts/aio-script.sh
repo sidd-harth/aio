@@ -1,4 +1,8 @@
 #!/bin/bash
+
+PS1='\[\e[01;36m\]\u\[\e[01;37m\]@\[\e[01;33m\]\H\[\e[01;37m\]:\[\e[01;32m\]\w\[\e[01;37m\]\$\[\033[0;37m\] '
+
+
 sudo echo "Instllaing Docker"
 sudo yum install -y yum-utils  device-mapper-persistent-data  lvm2
 sudo yum-config-manager --add-repo  https://download.docker.com/linux/centos/docker-ce.repo
@@ -48,15 +52,15 @@ oc version
 echo "GET GCP External IP Address" 
 gcp_external_IP=$(curl -H "Metadata-Flavor: Google" http://169.254.169.254/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip)
 
-mkdir /home/installation && mkdir /home/installation/etcd10 && cd /home/installation
+mkdir /home/installation && mkdir /home/installation/4 && cd /home/installation
 
-oc cluster up --public-hostname=${gcp_external_IP} --metrics  --host-data-dir=/home/installation/etcd10
+oc cluster up --public-hostname=${gcp_external_IP} --host-data-dir=/home/installation/4
 oc login -u system:admin
 
-// add imagestream redhat openjdk
+echo "add imagestream redhat openjdk"
 oc create -f https://gist.githubusercontent.com/tqvarnst/3ca512b01b7b7c1a1da0532939350e23/raw/1973a8baf6e398f534613108e0ec5a774a76babe/openjdk-s2i-imagestream.json -n openshift
 
-//creating an admin role to login into webconsole
+echo "creating an admin role to login into webconsole"
 oc create clusterrolebinding registry-controller --clusterrole=cluster-admin --user=admin
 
 
@@ -68,7 +72,6 @@ cp /home/onlineman47/openshift-jenkins-0.0.1-SNAPSHOT.jar /home/oc-build/deploym
 oc project dev
 oc delete all -l app=openshift-mysql
 oc start-build openshift-mysql  --from-dir=oc-build --wait=true  --follow
-
 
 oc adm policy add-scc-to-user anyuid -z istio-ingress-service-account -n istio-system &&
 oc adm policy add-scc-to-user anyuid -z default -n istio-system &&
@@ -85,7 +88,6 @@ oc adm policy add-cluster-role-to-user cluster-admin -z istio-galley-service-acc
 oc adm policy add-scc-to-user anyuid -z cluster-local-gateway-service-account -n istio-system &&
 oc adm policy add-scc-to-user anyuid -z istio-galley-service-account -n istio-system
 
-
 echo "Installing Istio and setting up Apigee Account"
 oc login -u system:admin
 mkdir /home/apigee && cd /home/apigee 
@@ -95,12 +97,29 @@ export PATH=$PATH:$(pwd)
 apigee-istio version
 apigee-istio provision -f -o mamillarevathi-eval -e test -u mamilla.revathi@tavant.com -p Qwerty@67 > samples/apigee/handler.yaml 
 
+
 cd /home/apigee 
 wget https://github.com/sidd-harth/apigee-istio-adapter/archive/modified_1.0.tar.gz
 tar -xvzf /home/apigee/modified_1.0.tar.gz
 cd apigee-istio-adapter-modified_1.0
 oc apply -f samples/istio/crds.yaml
 oc apply -f samples/istio/istio-demo.yaml
+
+
+
+echo "Installing Istio"
+mkdir /home/istio && cd /home/istio
+wget https://github.com/istio/istio/releases/download/1.0.5/istio-1.0.5-linux.tar.gz
+tar -xvzf /home/istio
+cd /home/istio/istio-1.0.5/bin
+export PATH=$PATH:$(pwd)
+istioctl version
+
+cd /home/istio
+oc apply -f istio-1.0.5/install/kubernetes/helm/istio/templates/crds.yaml
+oc apply -f istio-1.0.5/install/kubernetes/istio-demo.yaml
+
+oc get svc istio-ingressgateway -n istio-system
 
 echo "180 seconds wait time for Lazyyy Istio-System Pods"
 sleep 180
@@ -125,11 +144,7 @@ bash <(curl -L https://raw.githubusercontent.com/sidd-harth/aio/master/kiali-set
 echo "Create a new Kiali Route for the port 443"
 (oc get route kiali -n istio-system -o json|sed 's/80/443/')|oc apply -n istio-system -f -
 
-//// (oc get route movies -n aio -o json|sed 's/80/443/')|oc apply -n aio -f -
-//// (oc get route movies -n aio -o json|sed 's/80/443/')|oc apply -n aio -f -
-
 sleep 5
-
 
 echo "Adding EFK using ISTIO - https://istio.io/docs/tasks/telemetry/logs/fluentd/ "
 oc apply -f <(curl https://raw.githubusercontent.com/sidd-harth/aio/master/efk-logging-stack.yaml)
@@ -143,9 +158,6 @@ oc apply -f /home/apigee/samples/apigee/definitions.yaml
 oc apply -f /home/apigee/samples/apigee/handler.yaml 
 
 echo "Docker Apigee Istio Openshift Installation Successful"
-
-
-
 
 
 
@@ -195,17 +207,19 @@ cd /home/services/aio/istio
  while true; do curl -s http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
 
 echo "Simple Routing v1 v2 - round robin  all calls to one version Canary deployment: Split traffic between v1 and v2 - 90 10 - 75 25 - 50 50 - 0 100"
- oc apply -f movies-v2-deployment-injected.yml -n aio
+ 
+ oc apply -f /home/services4/aio/kubernetes/kube-injected/movies-v2-deployment-injected.yml -n aio
+ oc apply -f https://raw.githubusercontent.com/sidd-harth/aio/master/kubernetes/kube-injected/movies-v2-deployment-injected.yml
 
  oc replace -f virtual-service-movies-v1_and_v2_10_90.yml
  oc replace -f virtual-service-movies-v1_and_v2_50_50.yml
  oc replace -f virtual-service-movies-v2_100.yml
 
- while true; do curl -s http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
+ echo "check - show UI"
 
  oc scale deployment movies-v1 --replicas=0 -n aio
 
-****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@
+&#####################################################################################################################################################
 
 echo "Advacned Routing"
  oc apply -f /home/services4/aio/kubernetes/kube-injected/payment-v2-deployment-injected.yml -n aio
@@ -218,7 +232,7 @@ echo "Mirroring Traffic (Dark Launch)"
  oc logs -f $(oc get pods|grep payment-v2|awk '{ print $1 }') -c payment --tail=10
  oc logs -f $(oc get pods|grep payment-v1|awk '{ print $1 }') -c payment --tail=10
 
-****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@
+&####################################################################################################################################################
 
 echo "user-agent header (Canary Deployment)"
  oc replace -f virtual-service-firefox-payment-v2.yml
@@ -226,7 +240,7 @@ echo "user-agent header (Canary Deployment)"
  while true; do  curl -s -A "Firefox" http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
  oc delete destinationrule payment && oc delete virtualservice payment
 
-****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@
+&####################################################################################################################################################
 
 echo "Load Balancer (multiple replicas and random load balancing)"
  oc scale deployment payment-v2 --replicas=3 -n aio
@@ -240,7 +254,7 @@ echo "Load Balancer (multiple replicas and random load balancing)"
  while true; do  curl -s http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
  oc delete destinationrule payment
 
-****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@
+&####################################################################################################################################################
 
 echo "Fault Injection HTTP Error 401"
  oc apply -f fi-destination-rule-payment.yml
@@ -251,7 +265,7 @@ echo "Fault Injection HTTP Error 401"
 
  oc delete -f fi-virtual-service-payment-401.yml
 
-****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@
+&####################################################################################################################################################
  
 echo "Circuit Breaker (only requires Destination Rules)"
 echo "Siege Installation"
@@ -268,7 +282,7 @@ echo "Delay and CiruitBreaker - Fail Fast with Max Connections & Max Pending Req
     siege -r 3 -c 10  -v movies-aio.${gcp_external_IP}.nip.io
  oc delete destinationrule payment && oc delete virtualservice payment
 
-****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@
+&####################################################################################################################################################
 
 echo "Pool Ejection - Ultimate resilience with retries, circuit breaker, and pool ejection"
  oc scale deployment payment-v2 --replicas=2 -n aio
@@ -294,14 +308,14 @@ echo "Pool Ejection - Ultimate resilience with retries, circuit breaker, and poo
  exit
    while true; do  curl -s http://movies-aio.${gcp_external_IP}.nip.io  | grep --color -E 'payment-v2|$' ; sleep .5; done
 
-****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@
+&####################################################################################################################################################
 
 echo "Egress"
   make a http call in browser and check payment/httpbin
   curl -s http://payment-aio.${gcp_external_IP}.nip.io/httpbin
   oc apply -f service-entry-egress-httpbin.yml
 
-****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@****&&&&&^^^^%%%%%%$$$$$$$$#########@
+&####################################################################################################################################################
 
 echo "Show Jaeger, Grafana, Kiali Prometheus, Kibana"
 http://servicegraph-istio-system.35.244.32.156.nip.io/dotviz
@@ -665,15 +679,24 @@ curl https://raw.githubusercontent.com/kiali/kiali/${VERSION_LABEL}/deploy/opens
 
 
 echo "DialogFlow Payment Destinationrule & VirtualService"
-     //oc apply -f <(curl -s https://raw.githubusercontent.com/sidd-harth/aio/master/istio/destination-rule-payment-v1-v2.yml)
-     //oc apply -f <(curl -s https://raw.githubusercontent.com/sidd-harth/aio/master/istio/dialogFlow-payment-v2.yml)
-first both payment v1 and v2 should be runnning
+
+first both payment v1 and v2 should be runnning and apply below destinationrule
+  oc scale deployment payment-v2 --replicas=1 -n aio
+  oc scale deployment payment-v1 --replicas=1 -n aio
+  oc apply -f <(curl -s https://raw.githubusercontent.com/sidd-harth/aio/master/istio/destination-rule-payment-v1-v2.yml)
+
 then we will show payment v2 giving misbahevae 503 
-route all traffic to payment v1 --- oc apply -f <(curl https://raw.githubusercontent.com/sidd-harth/aio/master/istio/dialogFlow-payment-v1-100.yml)
+route all traffic to payment v1 --- 
+oc apply -f <(curl https://raw.githubusercontent.com/sidd-harth/aio/master/istio/dialogFlow-payment-v1-100.yml)
+
+
 behave pay v2 200
-replace pay vs with cananry vs -- oc apply -f <(curl https://raw.githubusercontent.com/sidd-harth/aio/master/istio/dialogFlow-payment-v2-10.yml)
-both v1 and v2 oc delete -f <(curl https://raw.githubusercontent.com/sidd-harth/aio/master/istio/dialogFlow-payment-v2-10.yml)
-only v2 both v1 and v2 - oc apply -f <(curl https://raw.githubusercontent.com/sidd-harth/aio/master/istio/dialogFlow-payment-v2.yml)
+replace pay vs with cananry vs -- 
+  oc apply -f <(curl https://raw.githubusercontent.com/sidd-harth/aio/master/istio/dialogFlow-payment-v2-10.yml)
+both v1 and v2 
+  oc delete -f <(curl https://raw.githubusercontent.com/sidd-harth/aio/master/istio/dialogFlow-payment-v2-10.yml)
+only v2 both v1 and v2 - 
+  oc apply -f <(curl https://raw.githubusercontent.com/sidd-harth/aio/master/istio/dialogFlow-payment-v2.yml)
 
 
 
