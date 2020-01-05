@@ -704,3 +704,11 @@ remove payment v2 service or discontinue traffic to payment v2 service
 add payment v2 service to production instance and route only 10% traffic to it. or route only 10% traffic to payment v2
 route traffic to payment v1 and v2 service equally
 route all traffic to payment v2
+
+
+echo "Remove all related Gateways:"
+oc  delete gateway grafana-gateway kiali-gateway prometheus-gateway tracing-gateway -n istio-system
+
+
+echo "Remove all related Virtual Services:"
+oc virtualservice grafana-vs kiali-vs prometheus-vs tracing-vs -n istio-system delete
