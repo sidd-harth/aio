@@ -56,9 +56,15 @@ cd /home/istio
 oc apply -f istio-1.0.5/install/kubernetes/helm/istio/templates/crds.yaml
 oc apply -f istio-1.0.5/install/kubernetes/istio-demo.yaml
 
-<!-- add the yamls from raw istio site -->
+
 
 oc get svc istio-ingressgateway -n istio-system
+
+oc apply -f https://raw.githubusercontent.com/sidd-harth/aio/master/istio/expose-prometheus.yml
+oc apply -f https://raw.githubusercontent.com/sidd-harth/aio/master/istio/expose-grafana.yml
+oc apply -f https://raw.githubusercontent.com/sidd-harth/aio/master/istio/expose-tracing.yml
+oc apply -f https://raw.githubusercontent.com/sidd-harth/aio/master/istio/expose-kiali.yml
+
 oc scale deployment istio-ingressgateway --replicas=0 -n istio-system
 oc scale deployment istio-ingressgateway --replicas=1 -n istio-system
 
@@ -354,9 +360,8 @@ route traffic to payment v1 and v2 service equally
 route all traffic to payment v2
 
 
-echo "Remove all related Gateways:"
-oc  delete gateway grafana-gateway kiali-gateway prometheus-gateway tracing-gateway -n istio-system
-
-
-echo "Remove all related Virtual Services:"
+echo "Remove all related Gateways Virtualservice Destinationrules"
+oc delete gateway grafana-gateway kiali-gateway prometheus-gateway tracing-gateway -n istio-system
 oc delete virtualservice grafana-vs kiali-vs prometheus-vs tracing-vs -n istio-system 
+oc delete destinationrules grafana kiali prometheus tracing -n istio-system 
+
