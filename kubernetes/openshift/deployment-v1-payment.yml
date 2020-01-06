@@ -28,3 +28,17 @@ spec:
           protocol: TCP
         securityContext:
           privileged: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment
+  labels:
+    app: payment    
+spec:
+  ports:
+  - name: http
+    port: 8080
+  selector:
+    app: payment
+---
