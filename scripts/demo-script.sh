@@ -92,10 +92,9 @@ oc apply -f <(curl https://raw.githubusercontent.com/sidd-harth/aio/master/fluen
 oc new-project manual-injection
 oc adm policy add-scc-to-user privileged -z default -n manual-injection
 
+oc get namespace -L istio-injection
 oc label  namespace manual-injection istio-injection=enabled 
 oc label  namespace manual-injection istio-injection-
-
-oc get namespace -L istio-injection
 
 wget https://raw.githubusercontent.com/sidd-harth/aio/master/kubernetes/openshift/deployment-v1-payment.yml
 oc apply -f deployment-v1-payment.yml
@@ -217,11 +216,15 @@ echo "Siege Installation"
 
 echo "Delay and CiruitBreaker - Fail Fast with Max Connections & Max Pending Requests"
   while true; do  curl -s http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
+    siege -r 3 -c 10  -v movies-aio.${gcp_external_IP}.nip.io
+    
  oc apply -f https://raw.githubusercontent.com/sidd-harth/aio/master/istio/fi-virtual-service-payment-delay.yml
   while true; do time curl -s http://movies.com | grep --color -E 'payment-v2|$' ; sleep .5; done
     siege -r 3 -c 10  -v movies-aio.${gcp_external_IP}.nip.io
+    
  oc replace -f https://raw.githubusercontent.com/sidd-harth/aio/master/istio/fi-destination-rule-payment_cb_policy.yml
     siege -r 3 -c 10  -v movies-aio.${gcp_external_IP}.nip.io
+    
  oc delete destinationrule payment && oc delete virtualservice payment
 
 &####################################################################################################################################################
