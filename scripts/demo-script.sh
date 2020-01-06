@@ -25,6 +25,8 @@ mkdir /home/installation && mkdir /home/installation/4 && cd /home/installation
 
 oc cluster up --public-hostname=${gcp_external_IP} --host-data-dir=/home/installation/4
 oc login -u system:admin
+oc create clusterrolebinding registry-controller --clusterrole=cluster-admin --user=admin
+
 
 oc adm policy add-scc-to-user anyuid -z istio-ingress-service-account -n istio-system &&
 oc adm policy add-scc-to-user anyuid -z default -n istio-system &&
@@ -45,7 +47,7 @@ oc adm policy add-scc-to-user anyuid -z istio-galley-service-account -n istio-sy
 echo "Installing Istio"
 mkdir /home/istio && cd /home/istio
 wget https://github.com/istio/istio/releases/download/1.0.5/istio-1.0.5-linux.tar.gz
-tar -xvzf /home/istio
+tar -xvzf istio-1.0.5-linux.tar.gz
 cd /home/istio/istio-1.0.5/bin
 export PATH=$PATH:$(pwd)
 istioctl version
@@ -54,7 +56,11 @@ cd /home/istio
 oc apply -f istio-1.0.5/install/kubernetes/helm/istio/templates/crds.yaml
 oc apply -f istio-1.0.5/install/kubernetes/istio-demo.yaml
 
+<!-- add the yamls from raw istio site -->
+
 oc get svc istio-ingressgateway -n istio-system
+oc scale deployment istio-ingressgateway --replicas=0 -n istio-system
+oc scale deployment istio-ingressgateway --replicas=1 -n istio-system
 
 echo "180 seconds wait time for Lazyyy Istio-System Pods"
 sleep 180
