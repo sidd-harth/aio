@@ -339,7 +339,7 @@ rate(istio_requests_total{destination_service=~"payment.*", response_code="503"}
 
 echo "Deleting configs"
 oc project aio
-oc delete virtualservice --all && oc delete destinationrules --all && oc delete policy --all && oc delete gateway --all
+oc delete virtualservice --all && oc delete destinationrules --all && oc delete policy --all && oc delete gateway --all && oc delete serviceentry --all
 
 oc get virtualservice 
 oc get destinationrules
