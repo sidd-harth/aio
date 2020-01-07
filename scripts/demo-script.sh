@@ -119,7 +119,17 @@ echo "Adding EFK using ISTIO - https://istio.io/docs/tasks/telemetry/logs/fluent
 oc apply -f <(curl https://raw.githubusercontent.com/sidd-harth/aio/master/efk-logging-stack.yaml)
 oc apply -f <(curl https://raw.githubusercontent.com/sidd-harth/aio/master/fluentd-istio.yaml)
 
+echo "port-forward kibana"
+oc -n logging port-forward $(oc -n logging get pod -l app=kibana -o jsonpath='{.items[0].metadata.name}') 5601:5601
 
+&####################################################################################################################
+echo "port-forward UI, Prometheus, Kiali, Grafana, Tracing"
+oc -n istio-system port-forward $(oc -n istio-system get pod -l app=grafana -o jsonpath='{.items[0].metadata.name}') 3000:3000
+oc -n istio-system port-forward $(oc -n istio-system get pod -l app=jaeger -o jsonpath='{.items[0].metadata.name}') 9898:16686
+oc -n istio-system port-forward $(oc -n istio-system get pod -l app=prometheus -o jsonpath='{.items[0].metadata.name}') 9090:9090
+
+oc -n istio-system port-forward $(oc -n istio-system get pod -l app=kiali -o jsonpath='{.items[0].metadata.name}') 2222:20001
+oc -n aio port-forward $(oc -n aio get pod -l app=ui -o jsonpath='{.items[0].metadata.name}') 1111:80
 &####################################################################################################################
 
 
@@ -173,6 +183,8 @@ oc create -f https://raw.githubusercontent.com/sidd-harth/aio/master/kubernetes/
 oc expose svc ui -n aio
 
 oc get routes 
+
+&############################################################################################################################################
 
 echo "https://istio.io/docs/ops/best-practices/traffic-management/"
 echo "Default Istio Traffic Routes"
@@ -303,7 +315,7 @@ echo "using port forwarding and show Kibana on local machine"
 
 create a route in the webconsole
 (oc get route kibana -n logging -o json|sed 's/80/5601/')|oc apply -n logging -f -
-oc -n logging port-forward $(oc -n logging get pod -l app=kibana -o jsonpath='{.items[0].metadata.name}') 5601:5601 &
+oc -n logging port-forward $(oc -n logging get pod -l app=kibana -o jsonpath='{.items[0].metadata.name}') 5601:5601
 echo "using "
 
 echo "Leave the command running. Press Ctrl-C to exit when done accessing the Kibana UI.
