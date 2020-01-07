@@ -181,8 +181,6 @@ echo "Default Istio Traffic Routes"
  oc apply -f https://raw.githubusercontent.com/sidd-harth/aio/master/istio/destination-rule-payment-v1-v2.yml
  oc apply -f https://raw.githubusercontent.com/sidd-harth/aio/master/istio/virtual-service-payment-v1_100.yml
  
- while true; do curl -s http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
-
 echo "Simple Routing v1 v2 - round robin  all calls to one version Canary deployment: Split traffic between v1 and v2 - 90 10 - 75 25 - 50 50 - 0 100"
  
  oc apply -f https://raw.githubusercontent.com/sidd-harth/aio/master/kubernetes/kube-injected/movies-v2-deployment-injected.yml
