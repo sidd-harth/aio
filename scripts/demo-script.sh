@@ -219,7 +219,7 @@ echo "user-agent header (Canary Deployment)"
 echo "Load Balancer (multiple replicas and random load balancing)"
  oc scale deployment payment-v2 --replicas=3 -n aio
  oc scale deployment payment-v1 --replicas=2 -n aio
- oc apply -f x-destination-rule-payment_lb_policy_app.yml
+ oc apply -f https://raw.githubusercontent.com/sidd-harth/aio/master/istio/x-destination-rule-payment_lb_policy_app.yml
 
  while true; do  curl -s http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
 
