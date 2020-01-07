@@ -209,7 +209,7 @@ echo "Mirroring Traffic (Dark Launch)"
 &####################################################################################################################################################
 
 echo "user-agent header (Canary Deployment)"
- oc replace -f virtual-service-firefox-payment-v2.yml
+ oc replace -f https://raw.githubusercontent.com/sidd-harth/aio/master/istio/virtual-service-firefox-payment-v2.yml
  while true; do  curl -s http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
  while true; do  curl -s -A "Firefox" http://movies-aio.${gcp_external_IP}.nip.io | grep --color -E 'payment-v2|$' ; sleep .5; done
  oc delete destinationrule payment && oc delete virtualservice payment
