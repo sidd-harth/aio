@@ -65,6 +65,28 @@ oc apply -f https://raw.githubusercontent.com/sidd-harth/aio/master/istio/expose
 oc apply -f https://raw.githubusercontent.com/sidd-harth/aio/master/istio/expose-tracing.yml
 oc apply -f https://raw.githubusercontent.com/sidd-harth/aio/master/istio/expose-kiali.yml
 
+echo "update ingress gateway svc yaml with"
+    - name: http2-prometheus
+      nodePort: 31311
+      port: 15030
+      protocol: TCP
+      targetPort: 15030
+    - name: http2-grafana
+      nodePort: 31312
+      port: 15031
+      protocol: TCP
+      targetPort: 15031
+    - name: http2-tracing
+      nodePort: 31313
+      port: 15032
+      protocol: TCP
+      targetPort: 15032
+    - name: http2-kiali
+      nodePort: 31314
+      port: 15029
+      protocol: TCP
+      targetPort: 15029
+
 oc scale deployment istio-ingressgateway --replicas=0 -n istio-system
 oc scale deployment istio-ingressgateway --replicas=1 -n istio-system
 
