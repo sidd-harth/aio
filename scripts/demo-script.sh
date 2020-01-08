@@ -307,7 +307,7 @@ echo "Pool Ejection - Ultimate resilience with retries, circuit breaker, and poo
 
 echo "Egress"
   make a http call in browser and check payment/httpbin
-  curl -s http://payment-aio.${gcp_external_IP}.nip.io/httpbin
+  curl -I http://payment-aio.${gcp_external_IP}.nip.io/httpbin
   oc apply -f https://raw.githubusercontent.com/sidd-harth/aio/master/istio/service-entry-egress-httpbin.yml
 
 &####################################################################################################################################################
