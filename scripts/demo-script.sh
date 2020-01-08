@@ -290,7 +290,7 @@ echo "Pool Ejection - Ultimate resilience with retries, circuit breaker, and poo
  curl localhost:8080/misbehave
  exit
 
-   while true; do  curl -s http://movies-aio.${gcp_external_IP}.nip.io  | grep --color -E 'payment-v2|$' ; sleep .5; done
+   while true; do  curl -s http://movies-aio.${gcp_external_IP}.nip.io  | grep --color -E '503 Service Unavailable|$' ; sleep .5; done
 
  oc replace -f https://raw.githubusercontent.com/sidd-harth/aio/master/istio/cpr-destination-rule-payment_pool_ejection.yml
  oc replace -f https://raw.githubusercontent.com/sidd-harth/aio/master/istio/cpr-virtual-service-payment_retry.yml
