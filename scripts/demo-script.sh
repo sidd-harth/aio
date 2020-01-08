@@ -355,7 +355,7 @@ oc get destinationrules
  oc delete all,secrets,sa,configmaps,deployments,ingresses,clusterroles,clusterrolebindings,virtualservices,destinationrules,customresourcedefinitions,templates --selector=app=kiali -n istio-system
 
 echo "delete movies payment v2 fore new demo"
-oc delete all -l version=v2
+oc delete all -l version=v2 -n aio
 
 &################################################################################################################################################################################
 
