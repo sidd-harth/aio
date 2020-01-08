@@ -9,7 +9,7 @@ spec:
   http:
   - fault:
       delay:
-        fixedDelay: 6.000s
+        fixedDelay: 3.000s
         percent: 100
     route:
     - destination:
