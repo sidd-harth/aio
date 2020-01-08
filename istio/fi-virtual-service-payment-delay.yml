@@ -9,8 +9,8 @@ spec:
   http:
   - fault:
       delay:
-        fixedDelay: 3.000s
-        percent: 75
+        fixedDelay: 6.000s
+        percent: 100
     route:
     - destination:
         host: payment
