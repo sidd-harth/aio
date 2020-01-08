@@ -10,7 +10,7 @@ spec:
   - fault:
       delay:
         fixedDelay: 3.000s
-        percent: 100
+        percent: 75
     route:
     - destination:
         host: payment
