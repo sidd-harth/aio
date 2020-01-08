@@ -294,13 +294,14 @@ echo "Pool Ejection - Ultimate resilience with retries, circuit breaker, and poo
 
  oc replace -f https://raw.githubusercontent.com/sidd-harth/aio/master/istio/cpr-destination-rule-payment_pool_ejection.yml
  oc replace -f https://raw.githubusercontent.com/sidd-harth/aio/master/istio/cpr-virtual-service-payment_retry.yml
- oc delete destinationrule payment && oc delete virtualservice payment
-
 
  oc exec -it $(oc get pods|grep payment-v2|awk '{ print $1 }'|head -1) -c payment /bin/bash
  curl localhost:8080/behave
  exit
    while true; do  curl -s http://movies-aio.${gcp_external_IP}.nip.io  | grep --color -E 'payment-v2|$' ; sleep .5; done
+
+ oc delete destinationrule payment && oc delete virtualservice payment
+
 
 &####################################################################################################################################################
 
