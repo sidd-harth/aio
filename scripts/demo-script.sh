@@ -197,8 +197,9 @@ echo "Simple Routing v1 v2 - round robin  all calls to one version Canary deploy
  
  oc apply -f https://raw.githubusercontent.com/sidd-harth/aio/master/kubernetes/kube-injected/movies-v2-deployment-injected.yml
 
- oc replace -f https://raw.githubusercontent.com/sidd-harth/aio/master/istio/virtual-service-movies-v1_and_v2_10_90.yml
+
  oc replace -f https://raw.githubusercontent.com/sidd-harth/aio/master/istio/virtual-service-movies-v1_and_v2_50_50.yml
+ oc replace -f https://raw.githubusercontent.com/sidd-harth/aio/master/istio/virtual-service-movies-v1_and_v2_10_90.yml
  oc replace -f https://raw.githubusercontent.com/sidd-harth/aio/master/istio/virtual-service-movies-v2_100.yml
 
  echo "check - show UI"
