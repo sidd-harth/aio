@@ -5,12 +5,13 @@ metadata:
   namespace: aio
 spec:
   hosts:
-    - payment
+  - payment
   http:
   - route:
     - destination:
         host: payment
         subset: version-v1
     mirror:
-         host: payment
-         subset: version-v2
+      host: payment
+      subset: version-v2
+---
