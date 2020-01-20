@@ -21,9 +21,9 @@ oc version
 echo "GET GCP External IP Address" 
 gcp_external_IP=$(curl -H "Metadata-Flavor: Google" http://169.254.169.254/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip)
 
-mkdir /home/installation && mkdir /home/installation/4 && cd /home/installation
+mkdir /home/installation && mkdir /home/installation/5 && cd /home/installation
 
-oc cluster up --public-hostname=${gcp_external_IP} --host-data-dir=/home/installation/4
+oc cluster up --public-hostname=${gcp_external_IP} --host-data-dir=/home/installation/5
 oc login -u system:admin
 oc create clusterrolebinding registry-controller --clusterrole=cluster-admin --user=admin
 
@@ -144,6 +144,8 @@ oc label  namespace manual-injection istio-injection-
 wget https://raw.githubusercontent.com/sidd-harth/aio/master/kubernetes/openshift/deployment-v1-payment.yml
 oc apply -f deployment-v1-payment.yml
 curl localhost:8080/ui | json_pp
+
+oc get pod
 oc get deployment -o wide
 
 oc apply -f <(istioctl kube-inject -f deployment-v1-payment.yml)
