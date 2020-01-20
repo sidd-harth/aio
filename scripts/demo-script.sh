@@ -365,6 +365,10 @@ oc get destinationrules
 echo "delete movies payment v2 fore new demo"
 oc delete all -l version=v2 -n aio
 
+echo "delete payment v2 for mirror issue"
+oc delete deployment payment-v2 -n aio
+oc delete pod <pod> -n aio
+
 &################################################################################################################################################################################
 
 export INGRESS_HOST=$(oc -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
